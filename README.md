@@ -2,10 +2,6 @@
 
 A high-performance, visually stunning attendance and payroll management tool designed for professionals. This application uses a **Glassmorphic UI** and local-first data persistence to help track daily work status, calculate net payouts, and visualize productivity trends.
 
----
-
-# 📊 Work Tracker & Salary Analytics System
-
 > **Live Demo:** [Click Here to Open the App](https://paromita23.github.io/Salary-Tracking-system/)
 
 A high-performance, visually stunning attendance...
