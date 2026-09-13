@@ -4,6 +4,14 @@ A high-performance, visually stunning attendance and payroll management tool des
 
 ---
 
+# 📊 Work Tracker & Salary Analytics System
+
+> **Live Demo:** [Click Here to Open the App](https://paromita23.github.io/Salary-Tracking-system/)
+
+A high-performance, visually stunning attendance...
+
+---
+
 ## ✨ Key Features
 
 ### 📅 **Smart Attendance Calendar**
@@ -103,14 +111,6 @@ Solution: Optimized use of localStorage with JSON stringification to keep the ap
 - [ ] **Overtime (OT) Calculation:** Add a status for extra work hours.
 - [ ] **Automatic Holiday Sync:** Fetch Indian Gazetted holidays via API.
 - [ ] **Data Encryption:** Optional password protection for the LocalStorage data.
-
----
-
-# 📊 Work Tracker & Salary Analytics System
-
-> **Live Demo:** [Click Here to Open the App](https://paromita23.github.io/Salary-Tracking-system/)
-
-A high-performance, visually stunning attendance...
 
 ---
 
