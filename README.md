@@ -62,6 +62,13 @@ A high-performance, visually stunning attendance and payroll management tool des
 
 ---
 
+## 🧠 Technical Challenges & Solutions:
+Challenge: Managing 31-day layouts in a fixed-height container (May/August).
+Solution: Implemented a "Compact Mode" logic that dynamically adjusts grid-gap and font sizes based on the month's date-range.
+Challenge: Data persistence without a database.
+Solution: Optimized use of localStorage with JSON stringification to keep the app 100% serverless and private.
+
+---
 
 ## 🗺️ Roadmap / Upcoming Features
 - [ ] **Dark/Light Mode Toggle:** Allow manual override of the theme.
