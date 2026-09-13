@@ -62,6 +62,16 @@ A high-performance, visually stunning attendance and payroll management tool des
 
 ---
 
+
+## 🗺️ Roadmap / Upcoming Features
+- [ ] **Dark/Light Mode Toggle:** Allow manual override of the theme.
+- [ ] **Multi-Currency Support:** Support for $, €, and £ for international users.
+- [ ] **Overtime (OT) Calculation:** Add a status for extra work hours.
+- [ ] **Automatic Holiday Sync:** Fetch Indian Gazetted holidays via API.
+- [ ] **Data Encryption:** Optional password protection for the LocalStorage data.
+
+---
+
 ## 👤 Credits
 *   **Created by:** **Paromita Saha**
 *   **Role:** Financial Data Entry & Attendance Management
