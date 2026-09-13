@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance & Salary Tracker</title>
+    <style>
+        body { font-family: sans-serif; background: #f4f4f9; padding: 20px; }
+        .card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        h2 { margin-top: 0; color: #333; }
+        select { width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; border: 1px solid #ccc; font-size: 16px; }
+        
+        /* Specific Colors */
+        .status-Present { background-color: #d4edda; color: #155724; } /* Green */
+        .status-Absent { background-color: #f8d7da; color: #721c24; }  /* Red */
+        .status-WFH { background-color: #d1ecf1; color: #0c5460; }     /* Blue */
+        .status-Sunday { background-color: #fff3cd; color: #856404; }  /* Yellow */
+        .status-Holiday { background-color: #e2d9f3; color: #512da8; } /* Purple */
+
+        table { width: 100%; border-collapse: collapse; background: white; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        .summary { font-size: 1.2em; font-weight: bold; color: #2c3e50; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>Salary Tracker</h2>
+        <p>Base Salary: <b>₹12,000</b></p>
+        <div class="summary" id="salaryDisplay">Estimated Payout: ₹0</div>
+    </div>
+
+    <div class="card">
+        <h3>Mark Today's Attendance</h3>
+        <input type="date" id="datePicker" style="padding:10px; width:93%; margin-bottom:10px;">
+        <select id="statusPicker">
+            <option value="Present">Present (Paid)</option>
+            <option value="Absent">Absent (Unpaid)</option>
+            <option value="WFH">WFH (Paid)</option>
+            <option value="Sunday">Sunday (Paid)</option>
+            <option value="Holiday">Holiday (Paid)</option>
+        </select>
+        <button onclick="saveEntry()" style="width:100%; padding:10px; background:#007bff; color:white; border:none; border-radius:5px;">Save Entry</button>
+    </div>
+
+    <table id="attendanceTable">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+
+    <script>
+        const salary = 12000;
+        let logs = JSON.parse(localStorage.getItem('attendanceLogs')) || [];
+
+        function saveEntry() {
+            const date = document.getElementById('datePicker').value;
+            const status = document.getElementById('statusPicker').value;
+            if(!date) return alert("Select a date");
+
+            logs.push({ date, status });
+            localStorage.setItem('attendanceLogs', JSON.stringify(logs));
+            renderData();
+        }
+
+        function renderData() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = "";
+            let paidDays = 0;
+            
+            // Get total days in current month
+            const now = new Date();
+            const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+            const dailyRate = salary / daysInMonth;
+
+            logs.forEach(log => {
+                const row = `<tr class="status-${log.status}">
+                    <td>${log.date}</td>
+                    <td>${log.status}</td>
+                </tr>`;
+                tbody.innerHTML += row;
+
+                if(log.status !== "Absent") {
+                    paidDays++;
+                }
+            });
+
+            document.getElementById('salaryDisplay').innerText = `Estimated Payout: ₹${(paidDays * dailyRate).toFixed(2)}`;
+        }
+
+        document.getElementById('datePicker').valueAsDate = new Date();
+        renderData();
+    </script>
+</body>
+</html>
