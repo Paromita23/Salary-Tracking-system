@@ -6,7 +6,7 @@
     <title>Work Tracker - Paromita Saha</title>
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;600;800&display=swap" rel="stylesheet">
     
-    <!-- Firebase SDKs (v8 Compatibility) -->
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -21,7 +21,6 @@
             --LOP-Red: #ff3838;
         }
 
-        /* --- LAYOUT CONFIG --- */
         html, body { height: 100%; margin: 0; padding: 0; overflow-x: hidden; width: 100%; }
         body { 
             font-family: 'Lexend', sans-serif;
@@ -37,7 +36,6 @@
             pointer-events: none; z-index: -1;
         }
 
-        /* --- HEADER --- */
         .top-header {
             padding: 10px 40px; display: flex; justify-content: space-between; align-items: center;
             background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(15px);
@@ -45,11 +43,10 @@
         }
         .header-title h1 { margin: 0; font-size: 1rem; font-weight: 800; }
         .header-profile { display: flex; align-items: center; gap: 10px; }
-        .header-pic { width: 38px; height: 38px; border-radius: 50%; border: 2px solid white; object-fit: cover; background: #333; }
+        .header-pic { width: 38px; height: 38px; border-radius: 50%; border: 2px solid white; object-fit: cover; background: #222; }
         .header-info b { display: block; font-size: 0.85rem; color: #ffd700; }
         .header-info span { font-size: 0.65rem; opacity: 0.9; }
 
-        /* --- SIDEBAR --- */
         #menu-icon {
             position: fixed; top: 12px; left: 12px; width: 32px; height: 32px;
             background: rgba(0, 0, 0, 0.85); color: white; border-radius: 50%;
@@ -62,7 +59,6 @@
         }
         #menu-icon:hover + #sidebar, #sidebar:hover { left: 0; }
 
-        /* --- DASHBOARD GRID --- */
         .main-container { flex: 1; display: flex; justify-content: center; align-items: flex-start; padding: 10px; overflow-y: auto; }
         .dashboard-grid {
             display: grid; grid-template-columns: 1.2fr 380px; 
@@ -115,16 +111,10 @@
         .sb-btn { width: 100%; padding: 10px; margin-top: 10px; border: none; border-radius: 10px; cursor: pointer; font-weight: 800; font-family: 'Lexend'; color: white; }
         .sb-input { width: 90%; background: rgba(255,255,255,0.1); border: 1px solid #444; border-radius: 8px; padding: 10px; color: white; font-family: 'Lexend'; margin-bottom: 10px; }
 
-        /* --- MOBILE OPTIMIZATIONS --- */
         @media (max-width: 950px) {
-            body { overflow-y: auto; }
             .top-header { padding: 10px 15px; }
-            .header-title h1 { font-size: 0.8rem; max-width: 150px; }
-            .header-info span { font-size: 0.5rem; }
-            .dashboard-grid { grid-template-columns: 1fr; width: 100%; padding: 10px; }
-            .glass { border-radius: 15px; }
-            .day-cell { font-size: 0.9rem; }
-            #branding-badge { padding: 8px 30px; font-size: 0.7rem; }
+            .header-title h1 { font-size: 0.8rem; }
+            .dashboard-grid { grid-template-columns: 1fr; width: 100%; }
         }
 
         #login-btn { background: #ea4335; margin-bottom: 20px; border: 2px solid white; }
@@ -162,7 +152,7 @@
         <div class="header-profile">
             <img id="headerPic" class="header-pic" src="https://via.placeholder.com/60">
             <div class="header-info">
-                <b id="dispName">PAROMITA SAHA</b>
+                <b id="dispName">User</b>
                 <span id="dispJobComp">Loading Profile...</span>
             </div>
         </div>
@@ -205,7 +195,6 @@
     </footer>
 
 <script>
-    // --- FIREBASE CONFIGURATION ---
     const firebaseConfig = {
         apiKey: "AIzaSyD30g8e98X0mp_0KNsryFZhxvh2I4AAfyk",
         authDomain: "worktracker-1f36c.firebaseapp.com",
@@ -226,7 +215,7 @@
     let barChart = null;
 
     const monthlyThemes = [
-        { bg: "https://images.pexels.com/photos/2082092/pexels-photo-2082092.jpeg?auto=compress&cs=tinysrgb&w=1260", color: "#d35400" }, 
+        { bg: "https://images.pexels.com/photos/2082092/pexels-photo-2082092.jpeg", color: "#d35400" }, 
         { bg: "https://images.pexels.com/photos/15574311/pexels-photo-15574311.jpeg", color: "#f1c40f" }, 
         { bg: "https://images.pexels.com/photos/15193313/pexels-photo-15193313.jpeg", color: "#27ae60" }, 
         { bg: "https://images.pexels.com/photos/14951073/pexels-photo-14951073.jpeg", color: "#e67e22" }, 
@@ -240,13 +229,9 @@
         { bg: "https://images.pexels.com/photos/1303086/pexels-photo-1303086.jpeg", color: "#c0392b" }  
     ];
 
-    // --- AUTHENTICATION LOGIC ---
     function toggleAuth() {
-        if (!currentUser) {
-            auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
-        } else {
-            auth.signOut();
-        }
+        if (!currentUser) { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e => console.error("Login Error:", e)); } 
+        else { auth.signOut(); }
     }
 
     auth.onAuthStateChanged(user => {
@@ -256,7 +241,7 @@
         const icon = document.getElementById('sync-icon');
         if (user) {
             btn.innerText = "Logout (" + user.displayName.split(' ')[0] + ")";
-            status.innerText = "Sync Active: " + user.email;
+            status.innerText = "Connected: " + user.email;
             icon.style.color = "#2ecc71";
             syncFromCloud();
         } else {
@@ -267,10 +252,9 @@
         renderApp();
     });
 
-    // --- CLOUD SYNC LOGIC ---
     function syncToCloud(key, data) {
         if (currentUser) {
-            db.ref('users/' + currentUser.uid + '/' + key).set(data);
+            db.ref('users/' + currentUser.uid + '/' + key).set(data).catch(e => console.error("Upload Error:", e));
         }
     }
 
@@ -285,7 +269,7 @@
                     loadProfile();
                     renderApp();
                 }
-            });
+            }, e => console.error("Download Error:", e));
         }
     }
 
@@ -310,10 +294,9 @@
 
         const firstDay = new Date(year, month, 1).getDay();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
-        
         const grid = document.getElementById('calendarGrid');
         grid.innerHTML = '';
-        
+
         const dataKey = `data_${year}_${month}`;
         const data = JSON.parse(localStorage.getItem(dataKey)) || { entries: {} };
         let counts = { Present: 0, Absent: 0, WFH: 0, Sunday: 0, Holiday: 0, None: 0 };
@@ -337,10 +320,9 @@
         const month = document.getElementById('monthSelect').value;
         const dataKey = `data_${year}_${month}`;
         let data = JSON.parse(localStorage.getItem(dataKey)) || { entries: {} };
-        let current = data.entries[dateStr] || "None";
-        data.entries[dateStr] = STATUSES[(STATUSES.indexOf(current) + 1) % STATUSES.length];
+        data.entries[dateStr] = STATUSES[(STATUSES.indexOf(data.entries[dateStr] || "None") + 1) % STATUSES.length];
         localStorage.setItem(dataKey, JSON.stringify(data));
-        syncToCloud(dataKey, data); 
+        syncToCloud(dataKey, data);
         renderApp();
     }
 
@@ -349,10 +331,8 @@
         const daily = baseSal / totalDays;
         const paidDays = counts.Present + counts.WFH + counts.Sunday + counts.Holiday;
         const net = Math.max(0, (paidDays * daily) - ((paidDays * daily) > 10000 ? 110 : 0));
-
         document.getElementById('netSalary').innerText = `₹${Math.round(net)}`;
         document.getElementById('ptaxDisplay').innerText = `₹${(paidDays * daily) > 10000 ? 110 : 0}`;
-        
         const workDays = counts.Present + counts.WFH;
         document.getElementById('pi-earn').innerText = workDays > 0 ? `₹${(net / workDays).toFixed(0)}` : '₹0';
         document.getElementById('pi-rate').innerText = `${((workDays / totalDays) * 100).toFixed(0)}%`;
@@ -364,18 +344,10 @@
         barChart = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: ['Present', 'WFH', 'Sunday', 'Holiday', 'Absent'],
-                datasets: [{
-                    data: [counts.Present, counts.WFH, counts.Sunday, counts.Holiday, counts.Absent],
-                    backgroundColor: ['#2ecc71', '#3498db', '#f1c40f', '#9b59b6', '#e74c3c'],
-                    borderRadius: 4
-                }]
+                labels: ['Pres', 'WFH', 'Sun', 'Hol', 'Abs'],
+                datasets: [{ data: [counts.Present, counts.WFH, counts.Sunday, counts.Holiday, counts.Absent], backgroundColor: ['#2ecc71', '#3498db', '#f1c40f', '#9b59b6', '#e74c3c'] }]
             },
-            options: { 
-                maintainAspectRatio: false, 
-                plugins: { legend: { display: false }, datalabels: { color: '#000', font: { weight: '900', size: 10 }, formatter: v => v > 0 ? v : '' } },
-                scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: '#fff', font: { size: 9, weight: 'bold' } } } }
-            }
+            options: { maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { color: '#000', font: { weight: '900', size: 9 }, formatter: v => v > 0 ? v : '' } }, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: '#fff', font: { size: 8 } } } } }
         });
     }
 
@@ -400,7 +372,7 @@
             baseSalary: document.getElementById('baseSalary').value
         };
         localStorage.setItem('profile_data', JSON.stringify(profile));
-        syncToCloud('profile_data', profile); 
+        syncToCloud('profile_data', profile);
         updateHeaderDisplay();
         renderApp();
     }
@@ -416,7 +388,7 @@
             reader.onload = e => { 
                 document.getElementById(imgId).src = e.target.result; 
                 localStorage.setItem(storageKey, e.target.result);
-                syncToCloud(storageKey, e.target.result); // SYNC IMAGE TO CLOUD
+                syncToCloud(storageKey, e.target.result); 
             };
             reader.readAsDataURL(input.files[0]);
         }
@@ -429,10 +401,7 @@
         let reader = new FileReader(); reader.onload = e => { Object.keys(JSON.parse(e.target.result)).forEach(k => localStorage.setItem(k, JSON.parse(e.target.result)[k])); location.reload(); };
         reader.readAsText(input.files[0]);
     }
-    function emailReport() {
-        const net = document.getElementById('netSalary').innerText;
-        window.open(`https://mail.google.com/mail/?view=cm&fs=1&tf=1&su=Work Report&body=Net Payout: ${net}`, '_blank');
-    }
+    function emailReport() { window.open(`https://mail.google.com/mail/?view=cm&fs=1&tf=1&su=Work Report&body=Net Payout: ${document.getElementById('netSalary').innerText}`, '_blank'); }
     init();
 </script>
 </body>
