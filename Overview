@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual - Work Tracker & Salary Analytics</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background-color: #f4f7f6;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #ffd700;
+            padding-bottom: 10px;
+            text-align: center;
+        }
+        h2 {
+            color: #2980b9;
+            margin-top: 30px;
+            border-left: 5px solid #2980b9;
+            padding-left: 15px;
+        }
+        h3 {
+            color: #d35400;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 10px;
+        }
+        .highlight {
+            background: #fff9c4;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .badge {
+            display: inline-block;
+            background: #2ecc71;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-bottom: 20px;
+        }
+        .formula-box {
+            background: #f8f9fa;
+            border: 1px solid #e1e4e8;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="badge">Version 2.0 (2026 Edition)</div>
+    <h1>📊 Work Tracker Manual</h1>
+    
+    <p>Welcome to your professional <strong>Work Tracker & Salary Analytics System</strong>. This tool is designed to provide a seamless experience for tracking attendance, managing payroll, and generating professional reports without the need for complex spreadsheets.</p>
+
+    <h2>✨ Key Features</h2>
+    
+    <h3>1. Smart Attendance Calendar</h3>
+    <ul>
+        <li><strong>One-Click Management:</strong> Simply click on any date to cycle through statuses: <span class="highlight">Present → Absent → WFH → Sunday → Holiday</span>.</li>
+        <li><strong>Automatic Layout:</strong> The calendar features a "Compact Mode" specifically for longer months (May and August) to ensure the entire dashboard fits on a single screen without scrolling.</li>
+        <li><strong>Visual Cues:</strong> Each status is color-coded for instant recognition (Green for Present, Blue for WFH, Red for Absent, etc.).</li>
+    </ul>
+
+    <h3>2. Payroll & Tax Logic</h3>
+    <ul>
+        <li><strong>Real-time Salary:</strong> Calculates your earnings instantly as you update your attendance.</li>
+        <li><strong>Tax Compliance:</strong> Includes a built-in logic to deduct <strong>₹110 Professional Tax (PTAX)</strong> automatically if your gross earnings exceed ₹10,000 for the month.</li>
+        <li><strong>Efficiency Tracking:</strong> Calculates your "Net Earning per Work Day" to show you how much you are effectively earning for every day spent at the office or WFH.</li>
+    </ul>
+
+    <h3>3. Data Visualization</h3>
+    <ul>
+        <li><strong>Analytics Dashboard:</strong> Features high-quality bar charts powered by <em>Chart.js</em> to show your monthly work distribution.</li>
+        <li><strong>Professional PDF:</strong> A dedicated print mode allows you to download your report. The sidebar and settings are automatically hidden to provide a clean "Salary Slip" style document.</li>
+    </ul>
+
+    <h2>🚀 How to Use</h2>
+    
+    <ol>
+        <li><strong>Profile Setup:</strong> Open the sidebar (☰), upload your picture, and enter your basic details like Name, Designation, and Base Salary. These details are used to generate your report headers.</li>
+        <li><strong>Logging Work:</strong> At the end of each day, click the corresponding date on the calendar until the correct status appears.</li>
+        <li><strong>Switching Months:</strong> Use the dropdown menus at the top of the calendar to navigate between different months and years. Your data is saved specifically for each month.</li>
+        <li><strong>Safety (Backups):</strong> Since all data is stored in your browser's <span class="highlight">Local Storage</span>, use the <strong>"Export Backup"</strong> button monthly to save a file to your computer.</li>
+    </ol>
+
+    <h2>📐 Calculation Formulas</h2>
+    <div class="formula-box">
+        • Daily Rate = Base Salary / Total Days in Month<br>
+        • Paid Days = (Present + WFH + Sunday + Holiday)<br>
+        • Gross = Paid Days × Daily Rate<br>
+        • Net Payout = Gross - (PTAX if Gross > 10,000)<br>
+        • Loss of Pay = Absent Days × Daily Rate
+    </div>
+
+    <h2>🛡️ Privacy Note</h2>
+    <p>This application is <strong>100% Client-Side</strong>. This means no data is ever sent to a server. Your personal information, salary data, and attendance records remain strictly on your own device.</p>
+
+    <footer>
+        Created by: <strong>Paromita Saha</strong><br>
+        © 2026 Work Tracker Project
+    </footer>
+</div>
+
+</body>
+</html>
