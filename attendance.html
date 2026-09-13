@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WorkTracker Pro</title>
+    <style>
+        :root {
+            --present: #28a745; --absent: #dc3545; --wfh: #007bff;
+            --sunday: #ffc107; --holiday: #6f42c1;
+        }
+        body { font-family: 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; color: #333; }
+        .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 15px; }
+        h2, h3 { margin-top: 0; color: #1a73e8; }
+        
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        label { font-size: 0.85rem; font-weight: bold; display: block; margin-bottom: 5px; }
+        select, input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; margin-bottom: 10px; }
+        
+        button { width: 100%; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        
+        .stat-box { text-align: center; padding: 10px; border-radius: 8px; background: #f8f9fa; border: 1px solid #eee; }
+        .stat-val { font-size: 1.1rem; font-weight: bold; display: block; }
+        .stat-label { font-size: 0.7rem; color: #666; text-transform: uppercase; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
+        th { background: #f8f9fa; padding: 10px; border-bottom: 2px solid #ddd; }
+        td { padding: 10px; border-bottom: 1px solid #eee; text-align: center; }
+
+        /* Row Colors */
+        .row-Present { border-left: 5px solid var(--present); }
+        .row-Absent { border-left: 5px solid var(--absent); background: #fff5f5; }
+        .row-WFH { border-left: 5px solid var(--wfh); }
+        .row-Sunday { border-left: 5px solid var(--sunday); }
+        .row-Holiday { border-left: 5px solid var(--holiday); }
+
+        .insight-card { background: #e8f0fe; border-left: 4px solid #1a73e8; padding: 10px; font-size: 0.85rem; line-height: 1.5; }
+        .tax-alert { color: #dc3545; font-size: 0.8rem; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h3>Month Selection</h3>
+        <select id="monthYearPicker" onchange="renderData()"></select>
+        
+        <div class="grid">
+            <div class="stat-box">
+                <span class="stat-label">Net Payout</span>
+                <span class="stat-val" id="netSalary">₹0</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">PTax Cut</span>
+                <span class="stat-val" id="ptaxDisplay">₹0</span>
+            </div>
+        </div>
+        <div style="margin-top:10px;">
+            <label>Salary Received Date:</label>
+            <input type="date" id="receivedDate" onchange="saveReceivedDate()">
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Mark Attendance</h3>
+        <div class="grid">
+            <div>
+                <label>Date</label>
+                <input type="date" id="entryDate">
+            </div>
+            <div>
+                <label>Status</label>
+                <select id="entryStatus">
+                    <option value="Present">Present</option>
+                    <option value="WFH">WFH</option>
+                    <option value="Sunday">Sunday</option>
+                    <option value="Holiday">Holiday</option>
+                    <option value="Absent">Absent</option>
+                </select>
+            </div>
+        </div>
+        <button onclick="addEntry()">Save Daily Entry</button>
+    </div>
+
+    <div class="card">
+        <h3>Attendance Log</h3>
+        <table id="attendanceTable">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+
+    <div class="card insight-card">
+        <h3>Key Insights</h3>
+        <div id="insights">
+            Loading insights...
+        </div>
+    </div>
+
+    <script>
+        const BASE_SALARY = 12000;
+        const PTAX_THRESHOLD = 10000;
+        const PTAX_AMOUNT = 110;
+
+        // Initialize Month Dropdown (March 2026 to Current)
+        function initDropdown() {
+            const select = document.getElementById('monthYearPicker');
+            const start = new Date(2026, 2); // March 2026
+            const end = new Date();
+            end.setMonth(end.getMonth() + 1); // Allow one month ahead
+
+            let curr = new Date(start);
+            while (curr <= end) {
+                let monthLabel = curr.toLocaleString('default', { month: 'long', year: 'numeric' });
+                let monthVal = `${curr.getFullYear()}-${curr.getMonth()}`;
+                let opt = new Option(monthLabel, monthVal);
+                select.add(opt);
+                curr.setMonth(curr.getMonth() + 1);
+            }
+            select.value = `${new Date().getFullYear()}-${new Date().getMonth()}`;
+        }
+
+        function getStorageKey() {
+            return 'data_' + document.getElementById('monthYearPicker').value;
+        }
+
+        function addEntry() {
+            const date = document.getElementById('entryDate').value;
+            const status = document.getElementById('entryStatus').value;
+            if (!date) return alert("Select Date");
+
+            let data = JSON.parse(localStorage.getItem(getStorageKey())) || { entries: {}, receivedDate: '' };
+            data.entries[date] = status;
+            localStorage.setItem(getStorageKey(), JSON.stringify(data));
+            renderData();
+        }
+
+        function deleteEntry(date) {
+            let data = JSON.parse(localStorage.getItem(getStorageKey()));
+            delete data.entries[date];
+            localStorage.setItem(getStorageKey(), JSON.stringify(data));
+            renderData();
+        }
+
+        function saveReceivedDate() {
+            let data = JSON.parse(localStorage.getItem(getStorageKey())) || { entries: {}, receivedDate: '' };
+            data.receivedDate = document.getElementById('receivedDate').value;
+            localStorage.setItem(getStorageKey(), JSON.stringify(data));
+            renderData();
+        }
+
+        function renderData() {
+            const storage = JSON.parse(localStorage.getItem(getStorageKey())) || { entries: {}, receivedDate: '' };
+            const entries = storage.entries;
+            document.getElementById('receivedDate').value = storage.receivedDate || '';
+
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            
+            const [year, month] = document.getElementById('monthYearPicker').value.split('-').map(Number);
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const dailyRate = BASE_SALARY / daysInMonth;
+
+            let paidDays = 0;
+            let absentDays = 0;
+
+            // Sort dates
+            const sortedDates = Object.keys(entries).sort();
+
+            sortedDates.forEach(date => {
+                const status = entries[date];
+                const row = document.createElement('tr');
+                row.className = `row-${status}`;
+                row.innerHTML = `
+                    <td>${date.split('-')[2]}/${date.split('-')[1]}</td>
+                    <td style="font-weight:bold; color:var(--${status.toLowerCase()})">${status}</td>
+                    <td><button onclick="deleteEntry('${date}')" style="padding:2px 5px; background:red; font-size:10px;">X</button></td>
+                `;
+                tbody.appendChild(row);
+
+                if (status === 'Absent') absentDays++;
+                else paidDays++;
+            });
+
+            // Calculations
+            let grossSalary = paidDays * dailyRate;
+            let ptax = grossSalary > PTAX_THRESHOLD ? PTAX_AMOUNT : 0;
+            let netSalary = grossSalary > 0 ? grossSalary - ptax : 0;
+
+            document.getElementById('netSalary').innerText = `₹${Math.round(netSalary)}`;
+            document.getElementById('ptaxDisplay').innerText = `₹${ptax}`;
+
+            // Insights
+            const attendancePer = ((paidDays / (paidDays + absentDays || 1)) * 100).toFixed(1);
+            document.getElementById('insights').innerHTML = `
+                • <b>Attendance:</b> ${attendancePer}% for this month.<br>
+                • <b>Loss of Pay:</b> ₹${Math.round(absentDays * dailyRate)} due to absences.<br>
+                • <b>PTax:</b> ${ptax > 0 ? 'Deducted (Salary > 10k)' : 'Not deducted'}.<br>
+                • <b>Daily Average:</b> You earned ₹${Math.round(netSalary / daysInMonth)}/day this month.
+            `;
+        }
+
+        initDropdown();
+        document.getElementById('entryDate').valueAsDate = new Date();
+        renderData();
+    </script>
+</body>
+</html>
