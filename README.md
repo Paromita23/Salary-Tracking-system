@@ -108,7 +108,7 @@ Solution: Optimized use of localStorage with JSON stringification to keep the ap
 
 # 📊 Work Tracker & Salary Analytics System
 
-> **Live Demo:** [Click Here to Open the App](https://yourusername.github.io/your-repo-name/)
+> **Live Demo:** [Click Here to Open the App](https://paromita23.github.io/Salary-Tracking-system/)
 
 A high-performance, visually stunning attendance...
 
