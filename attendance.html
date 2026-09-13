@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WorkTracker Pro</title>
+    <title>WorkTracker Pro + Analytics</title>
+    <!-- Adding Chart.js Library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --present: #28a745; --absent: #dc3545; --wfh: #007bff;
@@ -11,51 +13,54 @@
         }
         body { font-family: 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; color: #333; }
         .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 15px; }
-        h2, h3 { margin-top: 0; color: #1a73e8; }
+        h3 { margin-top: 0; color: #1a73e8; font-size: 1.1rem; border-bottom: 1px solid #eee; padding-bottom: 8px; }
         
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         label { font-size: 0.85rem; font-weight: bold; display: block; margin-bottom: 5px; }
         select, input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; margin-bottom: 10px; }
         
-        button { width: 100%; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        button { width: 100%; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button:active { background: #1557b0; transform: scale(0.98); }
         
         .stat-box { text-align: center; padding: 10px; border-radius: 8px; background: #f8f9fa; border: 1px solid #eee; }
-        .stat-val { font-size: 1.1rem; font-weight: bold; display: block; }
+        .stat-val { font-size: 1.1rem; font-weight: bold; display: block; color: #1a73e8; }
         .stat-label { font-size: 0.7rem; color: #666; text-transform: uppercase; }
 
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
-        th { background: #f8f9fa; padding: 10px; border-bottom: 2px solid #ddd; }
-        td { padding: 10px; border-bottom: 1px solid #eee; text-align: center; }
+        th { background: #f8f9fa; padding: 10px; border-bottom: 2px solid #ddd; text-align: left; }
+        td { padding: 10px; border-bottom: 1px solid #eee; }
 
-        /* Row Colors */
         .row-Present { border-left: 5px solid var(--present); }
         .row-Absent { border-left: 5px solid var(--absent); background: #fff5f5; }
         .row-WFH { border-left: 5px solid var(--wfh); }
         .row-Sunday { border-left: 5px solid var(--sunday); }
         .row-Holiday { border-left: 5px solid var(--holiday); }
 
-        .insight-card { background: #e8f0fe; border-left: 4px solid #1a73e8; padding: 10px; font-size: 0.85rem; line-height: 1.5; }
-        .tax-alert { color: #dc3545; font-size: 0.8rem; font-weight: bold; }
+        .insight-content { display: flex; flex-direction: column; gap: 15px; }
+        .chart-container { position: relative; height: 200px; width: 100%; }
+        .text-insights { font-size: 0.85rem; line-height: 1.6; background: #f0f7ff; padding: 10px; border-radius: 8px; border-left: 4px solid #1a73e8; }
+        
+        .del-btn { background: #ffebee; color: #c62828; border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.8rem; }
     </style>
 </head>
 <body>
 
     <div class="card">
-        <h3>Month Selection</h3>
+        <h3>Month & Earnings</h3>
         <select id="monthYearPicker" onchange="renderData()"></select>
         
         <div class="grid">
             <div class="stat-box">
-                <span class="stat-label">Net Payout</span>
+                <span class="stat-label">Net Salary</span>
                 <span class="stat-val" id="netSalary">₹0</span>
             </div>
             <div class="stat-box">
-                <span class="stat-label">PTax Cut</span>
-                <span class="stat-val" id="ptaxDisplay">₹0</span>
+                <span class="stat-label">PTax (₹110)</span>
+                <span class="stat-val" id="ptaxDisplay" style="color: #dc3545;">₹0</span>
             </div>
         </div>
         <div style="margin-top:10px;">
-            <label>Salary Received Date:</label>
+            <label>Credit Date:</label>
             <input type="date" id="receivedDate" onchange="saveReceivedDate()">
         </div>
     </div>
@@ -78,41 +83,47 @@
                 </select>
             </div>
         </div>
-        <button onclick="addEntry()">Save Daily Entry</button>
+        <button onclick="addEntry()">Add to Tracker</button>
+    </div>
+
+    <!-- NEW INSIGHTS CARD WITH CHART -->
+    <div class="card">
+        <h3>Key Insights & Analytics</h3>
+        <div class="insight-content">
+            <div class="chart-container">
+                <canvas id="attendanceChart"></canvas>
+            </div>
+            <div id="insightsText" class="text-insights">
+                No data yet.
+            </div>
+        </div>
     </div>
 
     <div class="card">
-        <h3>Attendance Log</h3>
+        <h3>Log Details</h3>
         <table id="attendanceTable">
             <thead>
                 <tr>
                     <th>Date</th>
                     <th>Status</th>
-                    <th>Action</th>
+                    <th></th>
                 </tr>
             </thead>
             <tbody id="tableBody"></tbody>
         </table>
     </div>
 
-    <div class="card insight-card">
-        <h3>Key Insights</h3>
-        <div id="insights">
-            Loading insights...
-        </div>
-    </div>
-
     <script>
         const BASE_SALARY = 12000;
         const PTAX_THRESHOLD = 10000;
         const PTAX_AMOUNT = 110;
+        let myChart = null;
 
-        // Initialize Month Dropdown (March 2026 to Current)
         function initDropdown() {
             const select = document.getElementById('monthYearPicker');
-            const start = new Date(2026, 2); // March 2026
+            const start = new Date(2026, 2); 
             const end = new Date();
-            end.setMonth(end.getMonth() + 1); // Allow one month ahead
+            end.setMonth(end.getMonth() + 2); 
 
             let curr = new Date(start);
             while (curr <= end) {
@@ -141,10 +152,12 @@
         }
 
         function deleteEntry(date) {
-            let data = JSON.parse(localStorage.getItem(getStorageKey()));
-            delete data.entries[date];
-            localStorage.setItem(getStorageKey(), JSON.stringify(data));
-            renderData();
+            if(confirm("Delete this entry?")) {
+                let data = JSON.parse(localStorage.getItem(getStorageKey()));
+                delete data.entries[date];
+                localStorage.setItem(getStorageKey(), JSON.stringify(data));
+                renderData();
+            }
         }
 
         function saveReceivedDate() {
@@ -152,6 +165,31 @@
             data.receivedDate = document.getElementById('receivedDate').value;
             localStorage.setItem(getStorageKey(), JSON.stringify(data));
             renderData();
+        }
+
+        function updateChart(counts) {
+            const ctx = document.getElementById('attendanceChart').getContext('2d');
+            
+            if (myChart) { myChart.destroy(); }
+
+            myChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Present', 'WFH', 'Sunday', 'Holiday', 'Absent'],
+                    datasets: [{
+                        data: [counts.Present, counts.WFH, counts.Sunday, counts.Holiday, counts.Absent],
+                        backgroundColor: ['#28a745', '#007bff', '#ffc107', '#6f42c1', '#dc3545'],
+                        borderWidth: 2,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } }
+                    }
+                }
+            });
         }
 
         function renderData() {
@@ -166,43 +204,42 @@
             const daysInMonth = new Date(year, month + 1, 0).getDate();
             const dailyRate = BASE_SALARY / daysInMonth;
 
-            let paidDays = 0;
-            let absentDays = 0;
-
-            // Sort dates
+            let counts = { Present: 0, Absent: 0, WFH: 0, Sunday: 0, Holiday: 0 };
             const sortedDates = Object.keys(entries).sort();
 
             sortedDates.forEach(date => {
                 const status = entries[date];
+                counts[status]++;
+                
                 const row = document.createElement('tr');
                 row.className = `row-${status}`;
+                const displayDate = new Date(date).toLocaleDateString('en-IN', {day:'2-digit', month:'short'});
                 row.innerHTML = `
-                    <td>${date.split('-')[2]}/${date.split('-')[1]}</td>
+                    <td>${displayDate}</td>
                     <td style="font-weight:bold; color:var(--${status.toLowerCase()})">${status}</td>
-                    <td><button onclick="deleteEntry('${date}')" style="padding:2px 5px; background:red; font-size:10px;">X</button></td>
+                    <td style="text-align:right"><button class="del-btn" onclick="deleteEntry('${date}')">Delete</button></td>
                 `;
                 tbody.appendChild(row);
-
-                if (status === 'Absent') absentDays++;
-                else paidDays++;
             });
 
-            // Calculations
+            let paidDays = counts.Present + counts.WFH + counts.Sunday + counts.Holiday;
             let grossSalary = paidDays * dailyRate;
             let ptax = grossSalary > PTAX_THRESHOLD ? PTAX_AMOUNT : 0;
-            let netSalary = grossSalary > 0 ? grossSalary - ptax : 0;
+            let netSalary = Math.max(0, grossSalary - ptax);
 
             document.getElementById('netSalary').innerText = `₹${Math.round(netSalary)}`;
             document.getElementById('ptaxDisplay').innerText = `₹${ptax}`;
 
-            // Insights
-            const attendancePer = ((paidDays / (paidDays + absentDays || 1)) * 100).toFixed(1);
-            document.getElementById('insights').innerHTML = `
-                • <b>Attendance:</b> ${attendancePer}% for this month.<br>
-                • <b>Loss of Pay:</b> ₹${Math.round(absentDays * dailyRate)} due to absences.<br>
-                • <b>PTax:</b> ${ptax > 0 ? 'Deducted (Salary > 10k)' : 'Not deducted'}.<br>
-                • <b>Daily Average:</b> You earned ₹${Math.round(netSalary / daysInMonth)}/day this month.
+            // Update Insights Text
+            const lop = Math.round(counts.Absent * dailyRate);
+            document.getElementById('insightsText').innerHTML = `
+                <b>Month Performance:</b><br>
+                • You were paid for <b>${paidDays}</b> out of ${daysInMonth} days.<br>
+                • Loss of Pay (LOP): <span style="color:red">₹${lop}</span><br>
+                • ${ptax > 0 ? 'Professional Tax (₹110) was applied.' : 'No PTax deduction this month.'}
             `;
+
+            updateChart(counts);
         }
 
         initDropdown();
