@@ -43,6 +43,22 @@ A high-performance, visually stunning attendance and payroll management tool des
     *   Use **Gmail Compose** to quickly send a pre-formatted summary via email.
 
 ---
+## 1. The Mermaid Flowchart
+graph TD
+    Start((Open App)) --> Init[Load Profile & Date]
+    Init --> CheckData{Data exists in LocalStorage?}
+    CheckData -- Yes --> Render[Display Saved Attendance]
+    CheckData -- No --> Default[Display Empty Calendar]
+    
+    Render --> Action[User Clicks a Date]
+    Action --> Toggle[Cycle: Present > Absent > WFH > etc.]
+    
+    Toggle --> Calc[Calculate Net Salary & PTAX]
+    Calc --> UpdateChart[Update Chart.js Analytics]
+    UpdateChart --> Save[Auto-Save to LocalStorage]
+    Save --> Render
+    
+    Render --> Export[Download PDF Report]
 
 ## 🛠️ Technical Stack
 
