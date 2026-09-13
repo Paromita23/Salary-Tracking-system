@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Work Tracker - Paromita Saha</title>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <style>
+        :root {
+            --Present: #2ecc71; --Absent: #e74c3c; --WFH: #3498db;
+            --Sunday: #f1c40f; --Holiday: #9b59b6; --None: rgba(255,255,255,0.15);
+            --Payout-Gold: #f1c40f; --Tax-Coral: #ff7675;   
+            --LOP-Red: #ff3838;
+        }
+
+        /* --- DESKTOP LAYOUT (Original) --- */
+        html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; width: 100%; }
+        body { 
+            font-family: 'Lexend', sans-serif;
+            background-size: cover; background-position: center; background-attachment: fixed;
+            display: grid; grid-template-rows: auto 1fr auto; color: white;
+            transition: background 1s ease-in-out;
+            -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;
+        }
+
+        body::before {
+            content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.55));
+            pointer-events: none; z-index: -1;
+        }
+
+        .top-header {
+            padding: 10px 40px; display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(255,255,255,0.2); z-index: 1000;
+        }
+        .header-title h1 { margin: 0; font-size: 1rem; font-weight: 800; }
+        .header-profile { display: flex; align-items: center; gap: 10px; }
+        .header-pic { width: 38px; height: 38px; border-radius: 50%; border: 2px solid white; object-fit: cover; }
+        .header-info b { display: block; font-size: 0.85rem; color: #ffd700; }
+        .header-info span { font-size: 0.65rem; opacity: 0.9; }
+
+        #menu-icon {
+            position: fixed; top: 12px; left: 12px; width: 32px; height: 32px;
+            background: rgba(0, 0, 0, 0.85); color: white; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; z-index: 2002; cursor: pointer;
+        }
+        #sidebar {
+            position: fixed; top: 0; left: -320px; width: 280px; height: 100vh;
+            background: rgba(15, 15, 25, 0.98); backdrop-filter: blur(25px);
+            z-index: 2001; transition: 0.4s ease; padding: 20px; color: white; overflow-y: auto;
+        }
+        #menu-icon:hover + #sidebar, #sidebar:hover { left: 0; }
+
+        .main-container { display: flex; justify-content: center; align-items: center; padding: 10px; min-height: 0; }
+        .dashboard-grid {
+            display: grid; grid-template-columns: 1.2fr 380px; 
+            gap: 15px; width: 95%; max-width: 1350px; height: 100%; align-items: center;
+        }
+
+        .glass { 
+            background: rgba(255, 255, 255, 0.18); backdrop-filter: blur(15px);
+            border-radius: 25px; border: 1px solid rgba(255,255,255,0.3);
+            padding: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            display: flex; flex-direction: column;
+        }
+
+        .calendar-wrap { width: 100%; max-width: 580px; margin: 0 auto; height: 100%; }
+        .dropdown-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        select { padding: 6px; border-radius: 8px; border: none; font-family: 'Lexend'; font-weight: 700; font-size: 0.85rem; cursor: pointer; }
+
+        .calendar-header { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-weight: 800; font-size: 0.6rem; margin-bottom: 5px; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; flex: 1; min-height: 0; }
+
+        .day-cell { 
+            aspect-ratio: 1 / 1; border-radius: 8px; display: flex; align-items: center; justify-content: center; 
+            cursor: pointer; font-weight: 700; font-size: 1.2rem; border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .cell-Present { background: var(--Present); }
+        .cell-Absent { background: var(--Absent); }
+        .cell-WFH { background: var(--WFH); }
+        .cell-Sunday { background: var(--Sunday); color: black; }
+        .cell-Holiday { background: var(--Holiday); }
+        .cell-None { background: var(--None); color: rgba(255,255,255,0.7); }
+
+        .insight-card { background: rgba(0,0,0,0.4); padding: 8px 15px; border-radius: 12px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+        .payout-amt { font-size: 1.2rem; font-weight: 800; color: var(--Payout-Gold); }
+        .tax-amt { font-size: 1.2rem; font-weight: 800; color: var(--Tax-Coral); }
+        .pro-insights-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 5px 0; }
+        .pi-item { background: rgba(255,255,255,0.1); padding: 6px; border-radius: 8px; border-left: 3px solid #ffd700; }
+        .pi-label { font-size: 0.55rem; opacity: 0.8; display: block; }
+        .pi-val { font-size: 0.85rem; font-weight: 800; }
+        .chart-box { height: 150px; width: 100%; margin-top: 5px; }
+
+        .footer-wrap { padding: 10px 0; display: flex; justify-content: center; }
+        #branding-badge {
+            display: inline-block; padding: 10px 80px; border-radius: 50px; 
+            font-weight: 800; font-size: 1.2rem; text-align: center; 
+            border: 4px solid #fff; color: white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-transform: uppercase;
+        }
+
+        .sb-btn { width: 100%; padding: 10px; margin-top: 10px; border: none; border-radius: 10px; cursor: pointer; font-weight: 800; font-family: 'Lexend'; color: white; }
+        .sb-input { width: 90%; background: rgba(255,255,255,0.1); border: 1px solid #444; border-radius: 8px; padding: 10px; color: white; font-family: 'Lexend'; margin-bottom: 10px; }
+
+        /* --- MOBILE OVERRIDES (Triggers when screen is smaller than 950px) --- */
+        @media (max-width: 950px) {
+            html, body { overflow: auto; height: auto; }
+            body { display: flex; flex-direction: column; }
+            .dashboard-grid { grid-template-columns: 1fr; height: auto; width: 98%; padding-top: 20px;}
+            .top-header { padding: 10px 15px; position: sticky; top:0; }
+            .header-info span { display: none; }
+            .header-pic { width: 30px; height: 30px; }
+            .main-container { align-items: start; overflow: visible; }
+            .glass { border-radius: 15px; padding: 12px; }
+            .day-cell { font-size: 1rem; border-radius: 6px; }
+            #branding-badge { padding: 8px 30px; font-size: 0.8rem; }
+            .chart-box { height: 140px; }
+            #menu-icon:active + #sidebar, #sidebar:active { left: 0; } /* Improved touch sidebar */
+        }
+
+        /* --- PRINT FIX --- */
+        @media print {
+            .no-print { display: none !important; }
+            #sidebar { display: none !important; }
+            body { overflow: visible !important; height: auto !important; background: white !important; color: black !important; }
+            .glass { box-shadow: none !important; border: 1px solid #ccc !important; background: white !important; color: black !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="menu-icon" class="no-print">☰</div>
+
+    <nav id="sidebar" class="no-print">
+        <h2 style="color: #ffd700; font-size: 1.1rem; margin-bottom: 20px;">Settings</h2>
+        <input type="file" onchange="uploadImg(this, 'headerPic', 'paromita_pic')" style="font-size: 0.7rem; margin-bottom:10px;">
+        <input id="userName" class="sb-input" value="PAROMITA SAHA" onchange="saveProfile(this)">
+        <input id="userPos" class="sb-input" value="Financial Data Entry Operator" onchange="saveProfile(this)">
+        <input id="userComp" class="sb-input" value="IT Solution" onchange="saveProfile(this)">
+        <input id="baseSalary" type="number" class="sb-input" value="12000" onchange="renderApp()">
+        
+        <h3 style="color: #ffd700; font-size: 0.9rem; margin-top: 25px;">Backups</h3>
+        <button class="sb-btn" style="background:#4b6584;" onclick="exportBackup()">Export Backup</button>
+        <button class="sb-btn" style="background:#4b6584;" onclick="document.getElementById('importFile').click()">Import Backup</button>
+        <input type="file" id="importFile" hidden onchange="importBackup(this)">
+
+        <div style="margin-top: 30px; border-top: 1px solid #333; padding-top: 20px;">
+            <button class="sb-btn" style="background:#e67e22;" onclick="window.print()">Download PDF Report</button>
+            <button class="sb-btn" style="background:#2980b9;" onclick="emailReport()">Gmail Compose</button>
+        </div>
+    </nav>
+
+    <header class="top-header">
+        <div class="header-title"><h1>Work Tracker</h1></div>
+        <div class="header-profile">
+            <img id="headerPic" class="header-pic" src="https://via.placeholder.com/60">
+            <div class="header-info">
+                <b id="dispName">PAROMITA SAHA</b>
+                <span id="dispJobComp">Loading Profile...</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <div class="dashboard-grid">
+            <div class="left-column">
+                <div class="glass calendar-wrap">
+                    <div class="dropdown-row">
+                        <select id="monthSelect" onchange="renderApp()"></select>
+                        <select id="yearSelect" onchange="renderApp()"></select>
+                    </div>
+                    <div class="calendar-header">
+                        <div>SUN</div><div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div>SAT</div>
+                    </div>
+                    <div id="calendarGrid" class="calendar-grid"></div>
+                </div>
+            </div>
+
+            <div class="right-column">
+                <div class="glass">
+                    <h3 style="margin:0 0 10px 0; font-size:0.85rem; opacity:0.9; letter-spacing: 1px;">MONTHLY ANALYTICS</h3>
+                    <div class="insight-card"><span style="font-size: 0.75rem;">Net Payout</span><span class="payout-amt" id="netSalary">₹0</span></div>
+                    <div class="insight-card"><span style="font-size: 0.75rem;">Tax Deduction</span><span class="tax-amt" id="ptaxDisplay">₹0</span></div>
+                    <div class="pro-insights-panel">
+                        <div class="pi-item"><span class="pi-label">Efficiency</span><span class="pi-val" id="pi-earn">₹0</span></div>
+                        <div class="pi-item"><span class="pi-label">Attend Rate</span><span class="pi-val" id="pi-rate">0%</span></div>
+                        <div class="pi-item"><span class="pi-label">Loss of Pay</span><span class="pi-val" id="pi-lop" style="color:var(--LOP-Red)">₹0</span></div>
+                        <div class="pi-item"><span class="pi-label">Mode</span><span class="pi-val" id="pi-mode">-</span></div>
+                    </div>
+                    <div class="chart-box"><canvas id="barChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer-wrap no-print">
+        <div id="branding-badge">CREATED BY: PAROMITA SAHA   &copy;2026</div>
+    </footer>
+
+<script>
+    Chart.register(ChartDataLabels);
+    const STATUSES = ["None", "Present", "Absent", "WFH", "Sunday", "Holiday"];
+    let barChart = null;
+
+    const monthlyThemes = [
+        { bg: "https://images.pexels.com/photos/2082092/pexels-photo-2082092.jpeg?auto=compress&cs=tinysrgb&w=1260", color: "#d35400" }, 
+        { bg: "https://images.pexels.com/photos/15574311/pexels-photo-15574311.jpeg", color: "#f1c40f" }, 
+        { bg: "https://images.pexels.com/photos/15193313/pexels-photo-15193313.jpeg", color: "#27ae60" }, 
+        { bg: "https://images.pexels.com/photos/14951073/pexels-photo-14951073.jpeg", color: "#e67e22" }, 
+        { bg: "https://images.pexels.com/photos/46710/pexels-photo-46710.jpeg", color: "#f39c12" }, 
+        { bg: "https://images.pexels.com/photos/459451/pexels-photo-459451.jpeg", color: "#2980b9" }, 
+        { bg: "https://images.pexels.com/photos/1463530/pexels-photo-1463530.jpeg", color: "#16a085" }, 
+        { bg: "https://images.pexels.com/photos/462162/pexels-photo-462162.jpeg", color: "#e67e22" }, 
+        { bg: "https://images.pexels.com/photos/1114883/pexels-photo-1114883.jpeg", color: "#8e44ad" }, 
+        { bg: "https://images.pexels.com/photos/28003661/pexels-photo-28003661.jpeg", color: "#d35400" }, 
+        { bg: "https://images.pexels.com/photos/236705/pexels-photo-236705.jpeg", color: "#f1c40f" }, 
+        { bg: "https://images.pexels.com/photos/1303086/pexels-photo-1303086.jpeg", color: "#c0392b" }  
+    ];
+
+    function init() {
+        const mSel = document.getElementById('monthSelect');
+        const ySel = document.getElementById('yearSelect');
+        const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        months.forEach((m, i) => mSel.add(new Option(m, i)));
+        for(let y=2024; y<=2030; y++) ySel.add(new Option(y, y));
+        mSel.value = new Date().getMonth();
+        ySel.value = new Date().getFullYear();
+        loadProfile();
+        renderApp();
+    }
+
+    function renderApp() {
+        const year = parseInt(document.getElementById('yearSelect').value);
+        const month = parseInt(document.getElementById('monthSelect').value);
+        const theme = monthlyThemes[month];
+        document.body.style.backgroundImage = `url('${theme.bg}')`;
+        document.getElementById('branding-badge').style.backgroundColor = theme.color;
+
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        
+        const grid = document.getElementById('calendarGrid');
+        grid.innerHTML = '';
+        
+        const data = JSON.parse(localStorage.getItem(`data_${year}_${month}`)) || { entries: {} };
+        let counts = { Present: 0, Absent: 0, WFH: 0, Sunday: 0, Holiday: 0, None: 0 };
+
+        for (let i = 0; i < firstDay; i++) grid.appendChild(Object.assign(document.createElement('div'), {className:'day-cell cell-None', style:'opacity:0; pointer-events:none;'}));
+        for (let d = 1; d <= daysInMonth; d++) {
+            let dStr = `${year}-${month + 1}-${d}`;
+            let status = data.entries[dStr] || "None";
+            counts[status]++;
+            let div = document.createElement('div');
+            div.className = `day-cell cell-${status}`;
+            div.onclick = () => toggle(dStr);
+            div.innerText = d;
+            grid.appendChild(div);
+        }
+        updateStats(counts, daysInMonth);
+    }
+
+    function toggle(dateStr) {
+        const year = document.getElementById('yearSelect').value;
+        const month = document.getElementById('monthSelect').value;
+        let data = JSON.parse(localStorage.getItem(`data_${year}_${month}`)) || { entries: {} };
+        let current = data.entries[dateStr] || "None";
+        data.entries[dateStr] = STATUSES[(STATUSES.indexOf(current) + 1) % STATUSES.length];
+        localStorage.setItem(`data_${year}_${month}`, JSON.stringify(data));
+        renderApp();
+    }
+
+    function updateStats(counts, totalDays) {
+        const baseSal = parseFloat(document.getElementById('baseSalary').value) || 0;
+        const daily = baseSal / totalDays;
+        const paidDays = counts.Present + counts.WFH + counts.Sunday + counts.Holiday;
+        const net = Math.max(0, (paidDays * daily) - ((paidDays * daily) > 10000 ? 110 : 0));
+
+        document.getElementById('netSalary').innerText = `₹${Math.round(net)}`;
+        document.getElementById('ptaxDisplay').innerText = `₹${(paidDays * daily) > 10000 ? 110 : 0}`;
+        
+        const workDays = counts.Present + counts.WFH;
+        document.getElementById('pi-earn').innerText = workDays > 0 ? `₹${(net / workDays).toFixed(0)}` : '₹0';
+        document.getElementById('pi-rate').innerText = `${((workDays / totalDays) * 100).toFixed(0)}%`;
+        document.getElementById('pi-lop').innerText = `₹${Math.round(counts.Absent * daily)}`;
+        document.getElementById('pi-mode').innerText = counts.WFH > counts.Present ? 'WFH' : 'Office';
+
+        const ctx = document.getElementById('barChart').getContext('2d');
+        if (barChart) barChart.destroy();
+        barChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Pres', 'WFH', 'Sun', 'Hol', 'Abs'],
+                datasets: [{
+                    data: [counts.Present, counts.WFH, counts.Sunday, counts.Holiday, counts.Absent],
+                    backgroundColor: ['#2ecc71', '#3498db', '#f1c40f', '#9b59b6', '#e74c3c'],
+                    borderRadius: 4
+                }]
+            },
+            options: { 
+                maintainAspectRatio: false, 
+                plugins: { legend: { display: false }, datalabels: { color: '#fff', font: { weight: 'bold', size: 9 }, formatter: v => v > 0 ? v : '' } },
+                scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: '#fff', font: { size: 8 } } } }
+            }
+        });
+    }
+
+    function loadProfile() {
+        const pic = localStorage.getItem('paromita_pic');
+        if (pic) document.getElementById('headerPic').src = pic;
+        ['userName', 'userPos', 'userComp', 'baseSalary'].forEach(id => {
+            const val = localStorage.getItem('profile_' + id);
+            if (val) document.getElementById(id).value = val;
+        });
+        updateHeaderDisplay();
+    }
+    function saveProfile(el) { localStorage.setItem('profile_' + el.id, el.value); updateHeaderDisplay(); }
+    function updateHeaderDisplay() {
+        document.getElementById('dispName').innerText = document.getElementById('userName').value;
+        document.getElementById('dispJobComp').innerText = `${document.getElementById('userPos').value} @ ${document.getElementById('userComp').value}`;
+    }
+    function uploadImg(input, imgId, storageKey) {
+        if (input.files && input.files[0]) {
+            let reader = new FileReader();
+            reader.onload = e => { document.getElementById(imgId).src = e.target.result; localStorage.setItem(storageKey, e.target.result); };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+    function exportBackup() {
+        let data = {}; for (let i = 0; i < localStorage.length; i++) data[localStorage.key(i)] = localStorage.getItem(localStorage.key(i));
+        let a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' })); a.download = `WorkTracker_Backup.json`; a.click();
+    }
+    function importBackup(input) {
+        let reader = new FileReader(); reader.onload = e => { Object.keys(JSON.parse(e.target.result)).forEach(k => localStorage.setItem(k, JSON.parse(e.target.result)[k])); location.reload(); };
+        reader.readAsText(input.files[0]);
+    }
+    function emailReport() {
+        const net = document.getElementById('netSalary').innerText;
+        window.open(`https://mail.google.com/mail/?view=cm&fs=1&tf=1&su=Work Report&body=Net Payout: ${net}`, '_blank');
+    }
+    init();
+</script>
+</body>
+</html>
