@@ -22,11 +22,11 @@
         }
 
         /* --- LAYOUT CONFIG --- */
-        html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; width: 100%; }
+        html, body { height: 100%; margin: 0; padding: 0; overflow-x: hidden; width: 100%; }
         body { 
             font-family: 'Lexend', sans-serif;
             background-size: cover; background-position: center; background-attachment: fixed;
-            display: grid; grid-template-rows: auto 1fr auto; color: white;
+            display: flex; flex-direction: column; color: white;
             transition: background 1s ease-in-out;
             -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;
         }
@@ -45,7 +45,7 @@
         }
         .header-title h1 { margin: 0; font-size: 1rem; font-weight: 800; }
         .header-profile { display: flex; align-items: center; gap: 10px; }
-        .header-pic { width: 38px; height: 38px; border-radius: 50%; border: 2px solid white; object-fit: cover; }
+        .header-pic { width: 38px; height: 38px; border-radius: 50%; border: 2px solid white; object-fit: cover; background: #333; }
         .header-info b { display: block; font-size: 0.85rem; color: #ffd700; }
         .header-info span { font-size: 0.65rem; opacity: 0.9; }
 
@@ -63,10 +63,10 @@
         #menu-icon:hover + #sidebar, #sidebar:hover { left: 0; }
 
         /* --- DASHBOARD GRID --- */
-        .main-container { display: flex; justify-content: center; align-items: center; padding: 10px; min-height: 0; }
+        .main-container { flex: 1; display: flex; justify-content: center; align-items: flex-start; padding: 10px; overflow-y: auto; }
         .dashboard-grid {
             display: grid; grid-template-columns: 1.2fr 380px; 
-            gap: 15px; width: 95%; max-width: 1350px; height: 100%; align-items: center;
+            gap: 15px; width: 95%; max-width: 1350px; align-items: start;
         }
 
         .glass { 
@@ -76,22 +76,16 @@
             display: flex; flex-direction: column;
         }
 
-        .calendar-wrap { width: 100%; max-width: 580px; margin: 0 auto; height: 100%; }
+        .calendar-wrap { width: 100%; max-width: 580px; margin: 0 auto; }
         .dropdown-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
         select { padding: 6px; border-radius: 8px; border: none; font-family: 'Lexend'; font-weight: 700; font-size: 0.85rem; cursor: pointer; }
 
         .calendar-header { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-weight: 800; font-size: 0.6rem; margin-bottom: 5px; }
-        .calendar-grid { 
-            display: grid; grid-template-columns: repeat(7, 1fr); 
-            gap: 8px; flex: 1; min-height: 0;
-        }
-
-        .compact-grid { gap: 3px !important; }
-        .compact-grid .day-cell { font-size: 0.95rem !important; border-radius: 6px !important; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
 
         .day-cell { 
             aspect-ratio: 1 / 1; border-radius: 8px; display: flex; align-items: center; justify-content: center; 
-            cursor: pointer; font-weight: 700; font-size: 1.2rem; border: 1px solid rgba(255,255,255,0.1);
+            cursor: pointer; font-weight: 700; font-size: 1.1rem; border: 1px solid rgba(255,255,255,0.1);
         }
         
         .cell-Present { background: var(--Present); }
@@ -110,26 +104,27 @@
         .pi-val { font-size: 0.85rem; font-weight: 800; }
         .chart-box { height: 150px; width: 100%; margin-top: 5px; }
 
-        .footer-wrap { padding: 10px 0; display: flex; justify-content: center; }
+        .footer-wrap { padding: 15px 0; display: flex; justify-content: center; }
         #branding-badge {
-            display: inline-block; padding: 10px 80px; border-radius: 50px; 
-            font-weight: 800; font-size: 1.2rem; text-align: center; 
-            border: 4px solid #fff; color: white;
+            display: inline-block; padding: 10px 50px; border-radius: 50px; 
+            font-weight: 800; font-size: 1rem; text-align: center; 
+            border: 3px solid #fff; color: white;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-transform: uppercase;
         }
 
         .sb-btn { width: 100%; padding: 10px; margin-top: 10px; border: none; border-radius: 10px; cursor: pointer; font-weight: 800; font-family: 'Lexend'; color: white; }
         .sb-input { width: 90%; background: rgba(255,255,255,0.1); border: 1px solid #444; border-radius: 8px; padding: 10px; color: white; font-family: 'Lexend'; margin-bottom: 10px; }
 
-        @media (max-width: 950px) { body { overflow-y: auto; } .dashboard-grid { grid-template-columns: 1fr; height: auto; } }
-
-        @media print {
-            .no-print { display: none !important; }
-            #sidebar { display: none !important; }
-            body { overflow: visible !important; height: auto !important; }
-            .main-container { padding: 0 !important; display: block !important; }
-            .dashboard-grid { display: grid !important; grid-template-columns: 1.2fr 380px !important; width: 100% !important; margin: 0 auto !important; }
-            .glass { box-shadow: none !important; border: 1px solid rgba(0,0,0,0.1) !important; }
+        /* --- MOBILE OPTIMIZATIONS --- */
+        @media (max-width: 950px) {
+            body { overflow-y: auto; }
+            .top-header { padding: 10px 15px; }
+            .header-title h1 { font-size: 0.8rem; max-width: 150px; }
+            .header-info span { font-size: 0.5rem; }
+            .dashboard-grid { grid-template-columns: 1fr; width: 100%; padding: 10px; }
+            .glass { border-radius: 15px; }
+            .day-cell { font-size: 0.9rem; }
+            #branding-badge { padding: 8px 30px; font-size: 0.7rem; }
         }
 
         #login-btn { background: #ea4335; margin-bottom: 20px; border: 2px solid white; }
@@ -149,7 +144,7 @@
         <input id="userName" class="sb-input" placeholder="Name" onchange="saveProfile()">
         <input id="userPos" class="sb-input" placeholder="Role" onchange="saveProfile()">
         <input id="userComp" class="sb-input" placeholder="Company" onchange="saveProfile()">
-        <input id="baseSalary" type="number" class="sb-input" placeholder="Salary" onchange="renderApp()">
+        <input id="baseSalary" type="number" class="sb-input" placeholder="Salary" onchange="saveProfile()">
         
         <h3 style="color: #ffd700; font-size: 0.9rem; margin-top: 25px;">Backups</h3>
         <button class="sb-btn" style="background:#4b6584;" onclick="exportBackup()">Export Backup</button>
@@ -163,7 +158,7 @@
     </nav>
 
     <header class="top-header">
-        <div class="header-title"><h1>Work Tracker / Salary & Attendance <span id="sync-icon">☁️</span></h1></div>
+        <div class="header-title"><h1>Salary & Attendance <span id="sync-icon">☁️</span></h1></div>
         <div class="header-profile">
             <img id="headerPic" class="header-pic" src="https://via.placeholder.com/60">
             <div class="header-info">
@@ -285,7 +280,7 @@
                 const cloudData = snapshot.val();
                 if (cloudData) {
                     Object.keys(cloudData).forEach(key => {
-                        localStorage.setItem(key, JSON.stringify(cloudData[key]));
+                        localStorage.setItem(key, typeof cloudData[key] === 'string' ? cloudData[key] : JSON.stringify(cloudData[key]));
                     });
                     loadProfile();
                     renderApp();
@@ -319,9 +314,6 @@
         const grid = document.getElementById('calendarGrid');
         grid.innerHTML = '';
         
-        if (month === 4 || month === 7) { grid.classList.add('compact-grid'); } 
-        else { grid.classList.remove('compact-grid'); }
-
         const dataKey = `data_${year}_${month}`;
         const data = JSON.parse(localStorage.getItem(dataKey)) || { entries: {} };
         let counts = { Present: 0, Absent: 0, WFH: 0, Sunday: 0, Holiday: 0, None: 0 };
@@ -348,7 +340,7 @@
         let current = data.entries[dateStr] || "None";
         data.entries[dateStr] = STATUSES[(STATUSES.indexOf(current) + 1) % STATUSES.length];
         localStorage.setItem(dataKey, JSON.stringify(data));
-        syncToCloud(dataKey, data); // SYNC TO CLOUD
+        syncToCloud(dataKey, data); 
         renderApp();
     }
 
@@ -408,7 +400,7 @@
             baseSalary: document.getElementById('baseSalary').value
         };
         localStorage.setItem('profile_data', JSON.stringify(profile));
-        syncToCloud('profile_data', profile); // SYNC TO CLOUD
+        syncToCloud('profile_data', profile); 
         updateHeaderDisplay();
         renderApp();
     }
@@ -421,7 +413,11 @@
     function uploadImg(input, imgId, storageKey) {
         if (input.files && input.files[0]) {
             let reader = new FileReader();
-            reader.onload = e => { document.getElementById(imgId).src = e.target.result; localStorage.setItem(storageKey, e.target.result); };
+            reader.onload = e => { 
+                document.getElementById(imgId).src = e.target.result; 
+                localStorage.setItem(storageKey, e.target.result);
+                syncToCloud(storageKey, e.target.result); // SYNC IMAGE TO CLOUD
+            };
             reader.readAsDataURL(input.files[0]);
         }
     }
