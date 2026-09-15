@@ -27,7 +27,6 @@
             background-size: cover; background-position: center; background-attachment: fixed;
             display: flex; flex-direction: column; color: white;
             transition: background 1s ease-in-out;
-            -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;
         }
 
         body::before {
@@ -130,8 +129,8 @@
         <button id="login-btn" class="sb-btn" onclick="toggleAuth()">Login with Google</button>
         <div id="sync-status">Status: Offline (Local Only)</div>
         
-        <button id="manual-sync-btn" class="sb-btn" onclick="manualSync()">🔄 Push/Pull Cloud Sync</button>
-        <div id="last-sync-time" style="font-size: 0.55rem; text-align: center; margin-top: 4px; opacity: 0.6;">Never synced</div>
+        <button id="manual-sync-btn" class="sb-btn" onclick="manualSync()">🔄 Sync with Android</button>
+        <div id="last-sync-time" style="font-size: 0.55rem; text-align: center; margin-top: 4px; opacity: 0.6;">Format: Android Unified JSON</div>
 
         <h2 style="color: #ffd700; font-size: 1.1rem; margin: 20px 0 10px 0;">Settings</h2>
         <input type="file" onchange="uploadImg(this, 'headerPic', 'paromita_pic')" style="font-size: 0.7rem; margin-bottom:10px;">
@@ -141,8 +140,8 @@
         <input id="baseSalary" type="number" class="sb-input" placeholder="Salary" onchange="saveProfile()">
         
         <h3 style="color: #ffd700; font-size: 0.9rem; margin-top: 25px;">Backups</h3>
-        <button class="sb-btn" style="background:#4b6584;" onclick="exportBackup()">Export Backup</button>
-        <button class="sb-btn" style="background:#4b6584;" onclick="document.getElementById('importFile').click()">Import Backup</button>
+        <button class="sb-btn" style="background:#4b6584;" onclick="exportBackup()">Android Format Export</button>
+        <button class="sb-btn" style="background:#4b6584;" onclick="document.getElementById('importFile').click()">Android Format Import</button>
         <input type="file" id="importFile" hidden onchange="importBackup(this)">
 
         <div style="margin-top: 30px; border-top: 1px solid #333; padding-top: 20px;">
@@ -233,8 +232,9 @@
         { bg: "https://images.pexels.com/photos/1303086/pexels-photo-1303086.jpeg", color: "#c0392b" }  
     ];
 
+    // --- AUTHENTICATION ---
     function toggleAuth() {
-        if (!currentUser) { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e => alert("Login Error: " + e.message)); } 
+        if (!currentUser) { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); } 
         else { auth.signOut(); }
     }
 
@@ -252,87 +252,130 @@
             btn.innerText = "Login with Google";
             status.innerText = "Status: Offline (Local Only)";
             icon.style.color = "white";
-            clearAllData(); // <--- This function now clears everything
+            clearAllData();
         }
         renderApp();
     });
 
-    // --- NEW: CLEAR ALL DATA ON LOGOUT ---
+    // --- ANDROID COMPATIBLE DATA FORMATTER ---
+    function getAndroidJSON() {
+        const profile = JSON.parse(localStorage.getItem('profile_data')) || {};
+        const attendance = [];
+        
+        // Loop through all data_* keys to build attendance array
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key.startsWith('data_')) {
+                const monthData = JSON.parse(localStorage.getItem(key));
+                if (monthData && monthData.entries) {
+                    Object.keys(monthData.entries).forEach(dateStr => {
+                        attendance.push({
+                            "date": dateStr,
+                            "status": monthData.entries[dateStr],
+                            "note": "",
+                            "updatedAt": Date.now()
+                        });
+                    });
+                }
+            }
+        }
+
+        return {
+            "version": 1,
+            "appName": "Work Tracker",
+            "exportedAt": Date.now(),
+            "profile": {
+                "userName": profile.userName || "User",
+                "userPos": profile.userPos || "",
+                "userComp": profile.userComp || "",
+                "baseSalary": parseInt(profile.baseSalary) || 0,
+                "avatarColorHex": "#EC4899"
+            },
+            "attendance": attendance,
+            "pic": localStorage.getItem('paromita_pic') || "" // Extended for web sync
+        };
+    }
+
+    function processAndroidJSON(json) {
+        if (!json || !json.attendance) return;
+
+        // 1. Restore Profile
+        const profile = {
+            userName: json.profile.userName,
+            userPos: json.profile.userPos,
+            userComp: json.profile.userComp,
+            baseSalary: json.profile.baseSalary
+        };
+        localStorage.setItem('profile_data', JSON.stringify(profile));
+        if(json.pic) localStorage.setItem('paromita_pic', json.pic);
+
+        // 2. Clear current attendance to prevent duplicates/ghost data
+        for (let i = 0; i < localStorage.length; i++) {
+            if (localStorage.key(i).startsWith('data_')) localStorage.removeItem(localStorage.key(i));
+        }
+
+        // 3. Restore Attendance
+        json.attendance.forEach(entry => {
+            const dateParts = entry.date.split('-');
+            const year = dateParts[0];
+            const month = parseInt(dateParts[1]) - 1; // Correct back to 0-indexed for web
+            const key = `data_${year}_${month}`;
+            
+            let monthData = JSON.parse(localStorage.getItem(key)) || { entries: {} };
+            monthData.entries[entry.date] = entry.status;
+            localStorage.setItem(key, JSON.stringify(monthData));
+        });
+
+        loadProfile();
+        renderApp();
+    }
+
+    // --- ENHANCED SYNC (ANDROID COMPATIBLE) ---
+    async function manualSync() {
+        if (!currentUser) { alert("Please login with Google first!"); return; }
+        const syncBtn = document.getElementById('manual-sync-btn');
+        syncBtn.innerText = "⌛ Syncing...";
+        syncBtn.disabled = true;
+
+        try {
+            const unifiedData = getAndroidJSON();
+            // We store the unified object in a single key in Firebase for exact Android parity
+            await db.ref('users/' + currentUser.uid + '/unified').set(unifiedData);
+            
+            syncBtn.innerText = "✅ Synced Successfully";
+            setTimeout(() => { syncBtn.innerText = "🔄 Sync with Android"; syncBtn.disabled = false; }, 2000);
+        } catch (e) {
+            console.error(e);
+            syncBtn.innerText = "❌ Sync Failed";
+            syncBtn.disabled = false;
+        }
+    }
+
+    function syncFromCloud() {
+        if (currentUser) {
+            db.ref('users/' + currentUser.uid + '/unified').on('value', snapshot => {
+                const cloudData = snapshot.val();
+                if (cloudData) {
+                    processAndroidJSON(cloudData);
+                }
+            });
+        }
+    }
+
+    // --- CORE APP FUNCTIONS ---
     function clearAllData() {
-        // Collect keys to remove
         const keysToRemove = [];
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
-            // Remove Attendance Records (starting with data_), Profile Data, and Image
-            if (key.startsWith('data_') || key === 'profile_data' || key === 'paromita_pic') {
-                keysToRemove.push(key);
-            }
+            if (key.startsWith('data_') || key === 'profile_data' || key === 'paromita_pic') keysToRemove.push(key);
         }
         keysToRemove.forEach(k => localStorage.removeItem(k));
-
-        // Reset sidebar inputs
         document.getElementById('userName').value = "";
         document.getElementById('userPos').value = "";
         document.getElementById('userComp').value = "";
         document.getElementById('baseSalary').value = "";
         document.getElementById('headerPic').src = "https://via.placeholder.com/60";
-
         updateHeaderDisplay();
-        // UI will refresh via auth.onAuthStateChanged calling renderApp()
-    }
-
-    async function manualSync() {
-        if (!currentUser) { alert("Please login with Google first!"); return; }
-        const syncBtn = document.getElementById('manual-sync-btn');
-        const timeDisplay = document.getElementById('last-sync-time');
-        syncBtn.innerText = "⌛ Syncing...";
-        syncBtn.disabled = true;
-        try {
-            let allData = {};
-            for (let i = 0; i < localStorage.length; i++) {
-                const k = localStorage.key(i);
-                if (k.startsWith('data_') || k === 'profile_data' || k === 'paromita_pic') {
-                    const val = localStorage.getItem(k);
-                    try { allData[k] = JSON.parse(val); } catch(e) { allData[k] = val; }
-                }
-            }
-            await db.ref('users/' + currentUser.uid).update(allData);
-            const snapshot = await db.ref('users/' + currentUser.uid).once('value');
-            const cloud = snapshot.val();
-            if (cloud) {
-                Object.keys(cloud).forEach(key => {
-                    localStorage.setItem(key, typeof cloud[key] === 'object' ? JSON.stringify(cloud[key]) : cloud[key]);
-                });
-            }
-            syncBtn.innerText = "✅ Synced Successfully";
-            timeDisplay.innerText = "Last Sync: " + new Date().toLocaleTimeString();
-            loadProfile();
-            renderApp();
-        } catch (e) {
-            console.error(e);
-            syncBtn.innerText = "❌ Sync Failed";
-        } finally {
-            setTimeout(() => { syncBtn.innerText = "🔄 Push/Pull Cloud Sync"; syncBtn.disabled = false; }, 3000);
-        }
-    }
-
-    function syncToCloud(key, data) {
-        if (currentUser) { db.ref('users/' + currentUser.uid + '/' + key).set(data).catch(e => console.error(e)); }
-    }
-
-    function syncFromCloud() {
-        if (currentUser) {
-            db.ref('users/' + currentUser.uid).once('value').then(snapshot => {
-                const cloudData = snapshot.val();
-                if (cloudData) {
-                    Object.keys(cloudData).forEach(key => {
-                        localStorage.setItem(key, typeof cloudData[key] === 'string' ? cloudData[key] : JSON.stringify(cloudData[key]));
-                    });
-                    loadProfile();
-                    renderApp();
-                }
-            });
-        }
     }
 
     function init() {
@@ -381,7 +424,7 @@
         let data = JSON.parse(localStorage.getItem(dataKey)) || { entries: {} };
         data.entries[dateStr] = STATUSES[(STATUSES.indexOf(data.entries[dateStr] || "None") + 1) % STATUSES.length];
         localStorage.setItem(dataKey, JSON.stringify(data));
-        syncToCloud(dataKey, data); 
+        if (currentUser) manualSync(); // Auto-sync on change if logged in
         renderApp();
     }
 
@@ -430,7 +473,7 @@
             baseSalary: document.getElementById('baseSalary').value
         };
         localStorage.setItem('profile_data', JSON.stringify(profile));
-        syncToCloud('profile_data', profile);
+        if (currentUser) manualSync();
         updateHeaderDisplay();
         renderApp();
     }
@@ -449,19 +492,29 @@
             reader.onload = e => { 
                 document.getElementById(imgId).src = e.target.result; 
                 localStorage.setItem(storageKey, e.target.result);
-                syncToCloud(storageKey, e.target.result); 
+                if (currentUser) manualSync(); 
             };
             reader.readAsDataURL(input.files[0]);
         }
     }
+
     function exportBackup() {
-        let data = {}; for (let i = 0; i < localStorage.length; i++) data[localStorage.key(i)] = localStorage.getItem(localStorage.key(i));
-        let a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' })); a.download = `WorkTracker_Backup.json`; a.click();
+        const data = getAndroidJSON();
+        let a = document.createElement('a'); 
+        a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })); 
+        a.download = `Android_WorkTracker_Backup.json`; a.click();
     }
+
     function importBackup(input) {
-        let reader = new FileReader(); reader.onload = e => { Object.keys(JSON.parse(e.target.result)).forEach(k => localStorage.setItem(k, JSON.parse(e.target.result)[k])); location.reload(); };
+        let reader = new FileReader(); 
+        reader.onload = e => { 
+            const json = JSON.parse(e.target.result);
+            processAndroidJSON(json);
+            alert("Android Backup Imported Successfully!");
+        };
         reader.readAsText(input.files[0]);
     }
+
     function emailReport() { window.open(`https://mail.google.com/mail/?view=cm&fs=1&tf=1&su=Work Report&body=Net Payout: ${document.getElementById('netSalary').innerText}`, '_blank'); }
     init();
 </script>
