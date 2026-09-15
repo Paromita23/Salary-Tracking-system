@@ -252,24 +252,35 @@
             btn.innerText = "Login with Google";
             status.innerText = "Status: Offline (Local Only)";
             icon.style.color = "white";
-            clearProfileSection(); // <--- NEW CLEAR LOGIC
+            clearAllData(); // <--- This function now clears everything
         }
         renderApp();
     });
 
-    // --- NEW: CLEAR PROFILE LOGIC ---
-    function clearProfileSection() {
-        localStorage.removeItem('profile_data');
-        localStorage.removeItem('paromita_pic');
+    // --- NEW: CLEAR ALL DATA ON LOGOUT ---
+    function clearAllData() {
+        // Collect keys to remove
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            // Remove Attendance Records (starting with data_), Profile Data, and Image
+            if (key.startsWith('data_') || key === 'profile_data' || key === 'paromita_pic') {
+                keysToRemove.push(key);
+            }
+        }
+        keysToRemove.forEach(k => localStorage.removeItem(k));
+
+        // Reset sidebar inputs
         document.getElementById('userName').value = "";
         document.getElementById('userPos').value = "";
         document.getElementById('userComp').value = "";
         document.getElementById('baseSalary').value = "";
         document.getElementById('headerPic').src = "https://via.placeholder.com/60";
+
         updateHeaderDisplay();
+        // UI will refresh via auth.onAuthStateChanged calling renderApp()
     }
 
-    // --- ENHANCED SYNC LOGIC ---
     async function manualSync() {
         if (!currentUser) { alert("Please login with Google first!"); return; }
         const syncBtn = document.getElementById('manual-sync-btn');
