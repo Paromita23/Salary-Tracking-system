@@ -130,7 +130,6 @@
         <button id="login-btn" class="sb-btn" onclick="toggleAuth()">Login with Google</button>
         <div id="sync-status">Status: Offline (Local Only)</div>
         
-        <!-- NEW SYNC BUTTON -->
         <button id="manual-sync-btn" class="sb-btn" onclick="manualSync()">🔄 Push/Pull Cloud Sync</button>
         <div id="last-sync-time" style="font-size: 0.55rem; text-align: center; margin-top: 4px; opacity: 0.6;">Never synced</div>
 
@@ -158,7 +157,7 @@
             <img id="headerPic" class="header-pic" src="https://via.placeholder.com/60">
             <div class="header-info">
                 <b id="dispName">User</b>
-                <span id="dispJobComp">Loading Profile...</span>
+                <span id="dispJobComp">Please login...</span>
             </div>
         </div>
     </header>
@@ -248,43 +247,45 @@
             btn.innerText = "Logout (" + user.displayName.split(' ')[0] + ")";
             status.innerText = "Connected: " + user.email;
             icon.style.color = "#2ecc71";
-            syncFromCloud(); // Auto-load on login
+            syncFromCloud(); 
         } else {
             btn.innerText = "Login with Google";
             status.innerText = "Status: Offline (Local Only)";
             icon.style.color = "white";
+            clearProfileSection(); // <--- NEW CLEAR LOGIC
         }
         renderApp();
     });
 
+    // --- NEW: CLEAR PROFILE LOGIC ---
+    function clearProfileSection() {
+        localStorage.removeItem('profile_data');
+        localStorage.removeItem('paromita_pic');
+        document.getElementById('userName').value = "";
+        document.getElementById('userPos').value = "";
+        document.getElementById('userComp').value = "";
+        document.getElementById('baseSalary').value = "";
+        document.getElementById('headerPic').src = "https://via.placeholder.com/60";
+        updateHeaderDisplay();
+    }
+
     // --- ENHANCED SYNC LOGIC ---
     async function manualSync() {
-        if (!currentUser) {
-            alert("Please login with Google first!");
-            return;
-        }
-
+        if (!currentUser) { alert("Please login with Google first!"); return; }
         const syncBtn = document.getElementById('manual-sync-btn');
         const timeDisplay = document.getElementById('last-sync-time');
         syncBtn.innerText = "⌛ Syncing...";
         syncBtn.disabled = true;
-
         try {
-            // 1. Gather all local data
             let allData = {};
             for (let i = 0; i < localStorage.length; i++) {
                 const k = localStorage.key(i);
                 if (k.startsWith('data_') || k === 'profile_data' || k === 'paromita_pic') {
                     const val = localStorage.getItem(k);
-                    try { allData[k] = JSON.parse(val); } 
-                    catch(e) { allData[k] = val; }
+                    try { allData[k] = JSON.parse(val); } catch(e) { allData[k] = val; }
                 }
             }
-
-            // 2. Push local data to Cloud
             await db.ref('users/' + currentUser.uid).update(allData);
-
-            // 3. Pull latest from Cloud to be 100% sure
             const snapshot = await db.ref('users/' + currentUser.uid).once('value');
             const cloud = snapshot.val();
             if (cloud) {
@@ -292,7 +293,6 @@
                     localStorage.setItem(key, typeof cloud[key] === 'object' ? JSON.stringify(cloud[key]) : cloud[key]);
                 });
             }
-
             syncBtn.innerText = "✅ Synced Successfully";
             timeDisplay.innerText = "Last Sync: " + new Date().toLocaleTimeString();
             loadProfile();
@@ -301,17 +301,12 @@
             console.error(e);
             syncBtn.innerText = "❌ Sync Failed";
         } finally {
-            setTimeout(() => { 
-                syncBtn.innerText = "🔄 Push/Pull Cloud Sync"; 
-                syncBtn.disabled = false; 
-            }, 3000);
+            setTimeout(() => { syncBtn.innerText = "🔄 Push/Pull Cloud Sync"; syncBtn.disabled = false; }, 3000);
         }
     }
 
     function syncToCloud(key, data) {
-        if (currentUser) {
-            db.ref('users/' + currentUser.uid + '/' + key).set(data).catch(e => console.error("Upload Error:", e));
-        }
+        if (currentUser) { db.ref('users/' + currentUser.uid + '/' + key).set(data).catch(e => console.error(e)); }
     }
 
     function syncFromCloud() {
@@ -347,16 +342,13 @@
         const theme = monthlyThemes[month];
         document.body.style.backgroundImage = `url('${theme.bg}')`;
         document.getElementById('branding-badge').style.backgroundColor = theme.color;
-
         const firstDay = new Date(year, month, 1).getDay();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
         const grid = document.getElementById('calendarGrid');
         grid.innerHTML = '';
-
         const dataKey = `data_${year}_${month}`;
         const data = JSON.parse(localStorage.getItem(dataKey)) || { entries: {} };
         let counts = { Present: 0, Absent: 0, WFH: 0, Sunday: 0, Holiday: 0, None: 0 };
-
         for (let i = 0; i < firstDay; i++) grid.appendChild(Object.assign(document.createElement('div'), {className:'day-cell cell-None', style:'opacity:0; pointer-events:none;'}));
         for (let d = 1; d <= daysInMonth; d++) {
             let dStr = `${year}-${month + 1}-${d}`;
@@ -378,7 +370,7 @@
         let data = JSON.parse(localStorage.getItem(dataKey)) || { entries: {} };
         data.entries[dateStr] = STATUSES[(STATUSES.indexOf(data.entries[dateStr] || "None") + 1) % STATUSES.length];
         localStorage.setItem(dataKey, JSON.stringify(data));
-        syncToCloud(dataKey, data); // Auto-push toggle
+        syncToCloud(dataKey, data); 
         renderApp();
     }
 
@@ -394,7 +386,6 @@
         document.getElementById('pi-rate').innerText = `${((workDays / totalDays) * 100).toFixed(0)}%`;
         document.getElementById('pi-lop').innerText = `₹${Math.round(counts.Absent * daily)}`;
         document.getElementById('pi-mode').innerText = counts.WFH > counts.Present ? 'WFH' : 'Office';
-
         const ctx = document.getElementById('barChart').getContext('2d');
         if (barChart) barChart.destroy();
         barChart = new Chart(ctx, {
@@ -415,7 +406,7 @@
             document.getElementById('userName').value = p.userName || "";
             document.getElementById('userPos').value = p.userPos || "";
             document.getElementById('userComp').value = p.userComp || "";
-            document.getElementById('baseSalary').value = p.baseSalary || 12000;
+            document.getElementById('baseSalary').value = p.baseSalary || "";
         }
         updateHeaderDisplay();
     }
@@ -434,8 +425,11 @@
     }
 
     function updateHeaderDisplay() {
-        document.getElementById('dispName').innerText = document.getElementById('userName').value || "User Name";
-        document.getElementById('dispJobComp').innerText = `${document.getElementById('userPos').value || "Role"} @ ${document.getElementById('userComp').value || "Company"}`;
+        const name = document.getElementById('userName').value;
+        const pos = document.getElementById('userPos').value;
+        const comp = document.getElementById('userComp').value;
+        document.getElementById('dispName').innerText = name || "User Name";
+        document.getElementById('dispJobComp').innerText = name ? `${pos} @ ${comp}` : "Please login...";
     }
 
     function uploadImg(input, imgId, storageKey) {
