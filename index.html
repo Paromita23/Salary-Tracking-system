@@ -81,6 +81,7 @@
         .day-cell { 
             aspect-ratio: 1 / 1; border-radius: 8px; display: flex; align-items: center; justify-content: center; 
             cursor: pointer; font-weight: 700; font-size: 1.1rem; border: 1px solid rgba(255,255,255,0.1);
+            position: relative;
         }
         
         .cell-Present { background: var(--Present); }
@@ -89,6 +90,10 @@
         .cell-Sunday { background: var(--Sunday); color: black; }
         .cell-Holiday { background: var(--Holiday); }
         .cell-None { background: var(--None); color: rgba(255,255,255,0.7); }
+
+        /* Sandwich Rule Styling */
+        .cell-Sandwich { background: var(--Absent) !important; color: white !important; border: 2px solid white; }
+        .cell-Sandwich::after { content: "🥪"; position: absolute; top: 2px; right: 2px; font-size: 0.5rem; }
 
         .insight-card { background: rgba(0,0,0,0.4); padding: 8px 15px; border-radius: 12px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
         .payout-amt { font-size: 1.2rem; font-weight: 800; color: var(--Payout-Gold); }
@@ -127,10 +132,10 @@
 
     <nav id="sidebar" class="no-print">
         <button id="login-btn" class="sb-btn" onclick="toggleAuth()">Login with Google</button>
-        <div id="sync-status">Status: Offline (Local Only)</div>
+        <div id="sync-status">Status: Offline</div>
         
         <button id="manual-sync-btn" class="sb-btn" onclick="manualSync()">🔄 Sync with Android</button>
-        <div id="last-sync-time" style="font-size: 0.55rem; text-align: center; margin-top: 4px; opacity: 0.6;">Format: Android Unified JSON</div>
+        <div id="last-sync-time" style="font-size: 0.55rem; text-align: center; margin-top: 4px; opacity: 0.6;">Android Format Compatible</div>
 
         <h2 style="color: #ffd700; font-size: 1.1rem; margin: 20px 0 10px 0;">Settings</h2>
         <input type="file" onchange="uploadImg(this, 'headerPic', 'paromita_pic')" style="font-size: 0.7rem; margin-bottom:10px;">
@@ -140,8 +145,8 @@
         <input id="baseSalary" type="number" class="sb-input" placeholder="Salary" onchange="saveProfile()">
         
         <h3 style="color: #ffd700; font-size: 0.9rem; margin-top: 25px;">Backups</h3>
-        <button class="sb-btn" style="background:#4b6584;" onclick="exportBackup()">Android Format Export</button>
-        <button class="sb-btn" style="background:#4b6584;" onclick="document.getElementById('importFile').click()">Android Format Import</button>
+        <button class="sb-btn" style="background:#4b6584;" onclick="exportBackup()">Export Android JSON</button>
+        <button class="sb-btn" style="background:#4b6584;" onclick="document.getElementById('importFile').click()">Import Android JSON</button>
         <input type="file" id="importFile" hidden onchange="importBackup(this)">
 
         <div style="margin-top: 30px; border-top: 1px solid #333; padding-top: 20px;">
@@ -151,7 +156,7 @@
     </nav>
 
     <header class="top-header">
-        <div class="header-title"><h1>Salary & Attendance <span id="sync-icon">☁️</span></h1></div>
+        <div class="header-title"><h1>Salary Tracker <span id="sync-icon">☁️</span></h1></div>
         <div class="header-profile">
             <img id="headerPic" class="header-pic" src="https://via.placeholder.com/60">
             <div class="header-info">
@@ -234,8 +239,9 @@
 
     // --- AUTHENTICATION ---
     function toggleAuth() {
-        if (!currentUser) { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); } 
-        else { auth.signOut(); }
+        const provider = new firebase.auth.GoogleAuthProvider();
+        if (!currentUser) { auth.signInWithRedirect(provider); } 
+        else { auth.signOut().then(() => location.reload()); }
     }
 
     auth.onAuthStateChanged(user => {
@@ -250,130 +256,79 @@
             syncFromCloud(); 
         } else {
             btn.innerText = "Login with Google";
-            status.innerText = "Status: Offline (Local Only)";
+            status.innerText = "Status: Offline";
             icon.style.color = "white";
             clearAllData();
         }
         renderApp();
     });
 
-    // --- ANDROID COMPATIBLE DATA FORMATTER ---
+    // --- ANDROID DATA HANDLER ---
     function getAndroidJSON() {
         const profile = JSON.parse(localStorage.getItem('profile_data')) || {};
         const attendance = [];
-        
-        // Loop through all data_* keys to build attendance array
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
             if (key.startsWith('data_')) {
                 const monthData = JSON.parse(localStorage.getItem(key));
                 if (monthData && monthData.entries) {
                     Object.keys(monthData.entries).forEach(dateStr => {
-                        attendance.push({
-                            "date": dateStr,
-                            "status": monthData.entries[dateStr],
-                            "note": "",
-                            "updatedAt": Date.now()
-                        });
+                        attendance.push({ "date": dateStr, "status": monthData.entries[dateStr], "note": "", "updatedAt": Date.now() });
                     });
                 }
             }
         }
-
         return {
-            "version": 1,
-            "appName": "Work Tracker",
-            "exportedAt": Date.now(),
-            "profile": {
-                "userName": profile.userName || "User",
-                "userPos": profile.userPos || "",
-                "userComp": profile.userComp || "",
-                "baseSalary": parseInt(profile.baseSalary) || 0,
-                "avatarColorHex": "#EC4899"
-            },
-            "attendance": attendance,
-            "pic": localStorage.getItem('paromita_pic') || "" // Extended for web sync
+            "version": 1, "appName": "Work Tracker", "exportedAt": Date.now(),
+            "profile": { "userName": profile.userName || "User", "userPos": profile.userPos || "", "userComp": profile.userComp || "", "baseSalary": parseInt(profile.baseSalary) || 0, "avatarColorHex": "#EC4899" },
+            "attendance": attendance, "pic": localStorage.getItem('paromita_pic') || ""
         };
     }
 
     function processAndroidJSON(json) {
         if (!json || !json.attendance) return;
-
-        // 1. Restore Profile
-        const profile = {
-            userName: json.profile.userName,
-            userPos: json.profile.userPos,
-            userComp: json.profile.userComp,
-            baseSalary: json.profile.baseSalary
-        };
-        localStorage.setItem('profile_data', JSON.stringify(profile));
+        localStorage.setItem('profile_data', JSON.stringify({ userName: json.profile.userName, userPos: json.profile.userPos, userComp: json.profile.userComp, baseSalary: json.profile.baseSalary }));
         if(json.pic) localStorage.setItem('paromita_pic', json.pic);
-
-        // 2. Clear current attendance to prevent duplicates/ghost data
-        for (let i = 0; i < localStorage.length; i++) {
-            if (localStorage.key(i).startsWith('data_')) localStorage.removeItem(localStorage.key(i));
-        }
-
-        // 3. Restore Attendance
+        for (let i = 0; i < localStorage.length; i++) { if (localStorage.key(i).startsWith('data_')) localStorage.removeItem(localStorage.key(i)); }
         json.attendance.forEach(entry => {
             const dateParts = entry.date.split('-');
-            const year = dateParts[0];
-            const month = parseInt(dateParts[1]) - 1; // Correct back to 0-indexed for web
-            const key = `data_${year}_${month}`;
-            
+            const key = `data_${dateParts[0]}_${parseInt(dateParts[1]) - 1}`;
             let monthData = JSON.parse(localStorage.getItem(key)) || { entries: {} };
             monthData.entries[entry.date] = entry.status;
             localStorage.setItem(key, JSON.stringify(monthData));
         });
-
-        loadProfile();
-        renderApp();
+        loadProfile(); renderApp();
     }
 
-    // --- ENHANCED SYNC (ANDROID COMPATIBLE) ---
     async function manualSync() {
-        if (!currentUser) { alert("Please login with Google first!"); return; }
+        if (!currentUser) { alert("Please login first!"); return; }
         const syncBtn = document.getElementById('manual-sync-btn');
-        syncBtn.innerText = "⌛ Syncing...";
-        syncBtn.disabled = true;
-
+        syncBtn.innerText = "⌛ Syncing..."; syncBtn.disabled = true;
         try {
-            const unifiedData = getAndroidJSON();
-            // We store the unified object in a single key in Firebase for exact Android parity
-            await db.ref('users/' + currentUser.uid + '/unified').set(unifiedData);
-            
+            await db.ref('users/' + currentUser.uid + '/unified').set(getAndroidJSON());
             syncBtn.innerText = "✅ Synced Successfully";
-            setTimeout(() => { syncBtn.innerText = "🔄 Sync with Android"; syncBtn.disabled = false; }, 2000);
-        } catch (e) {
-            console.error(e);
-            syncBtn.innerText = "❌ Sync Failed";
-            syncBtn.disabled = false;
-        }
+        } catch (e) { syncBtn.innerText = "❌ Sync Failed"; }
+        finally { setTimeout(() => { syncBtn.innerText = "🔄 Sync with Android"; syncBtn.disabled = false; }, 2000); }
     }
 
     function syncFromCloud() {
         if (currentUser) {
             db.ref('users/' + currentUser.uid + '/unified').on('value', snapshot => {
                 const cloudData = snapshot.val();
-                if (cloudData) {
-                    processAndroidJSON(cloudData);
-                }
+                if (cloudData) processAndroidJSON(cloudData);
             });
         }
     }
 
-    // --- CORE APP FUNCTIONS ---
     function clearAllData() {
         const keysToRemove = [];
         for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key.startsWith('data_') || key === 'profile_data' || key === 'paromita_pic') keysToRemove.push(key);
+            const k = localStorage.key(i);
+            if (k.startsWith('data_') || k === 'profile_data' || k === 'paromita_pic') keysToRemove.push(k);
         }
         keysToRemove.forEach(k => localStorage.removeItem(k));
-        document.getElementById('userName').value = "";
-        document.getElementById('userPos').value = "";
-        document.getElementById('userComp').value = "";
-        document.getElementById('baseSalary').value = "";
+        document.getElementById('userName').value = ""; document.getElementById('userPos').value = ""; 
+        document.getElementById('userComp').value = ""; document.getElementById('baseSalary').value = "";
         document.getElementById('headerPic').src = "https://via.placeholder.com/60";
         updateHeaderDisplay();
     }
@@ -384,10 +339,8 @@
         const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         months.forEach((m, i) => mSel.add(new Option(m, i)));
         for(let y=2024; y<=2030; y++) ySel.add(new Option(y, y));
-        mSel.value = new Date().getMonth();
-        ySel.value = new Date().getFullYear();
-        loadProfile();
-        renderApp();
+        mSel.value = new Date().getMonth(); ySel.value = new Date().getFullYear();
+        loadProfile(); renderApp();
     }
 
     function renderApp() {
@@ -400,16 +353,35 @@
         const daysInMonth = new Date(year, month + 1, 0).getDate();
         const grid = document.getElementById('calendarGrid');
         grid.innerHTML = '';
+
         const dataKey = `data_${year}_${month}`;
         const data = JSON.parse(localStorage.getItem(dataKey)) || { entries: {} };
         let counts = { Present: 0, Absent: 0, WFH: 0, Sunday: 0, Holiday: 0, None: 0 };
+
         for (let i = 0; i < firstDay; i++) grid.appendChild(Object.assign(document.createElement('div'), {className:'day-cell cell-None', style:'opacity:0; pointer-events:none;'}));
+        
         for (let d = 1; d <= daysInMonth; d++) {
             let dStr = `${year}-${month + 1}-${d}`;
             let status = data.entries[dStr] || "None";
+            
+            // --- SANDWICH RULE CHECK ---
+            let isSandwich = false;
+            if (status === "Sunday") {
+                const prevDate = new Date(year, month, d - 1);
+                const nextDate = new Date(year, month, d + 1);
+                const prevStr = `${prevDate.getFullYear()}-${prevDate.getMonth() + 1}-${prevDate.getDate()}`;
+                const nextStr = `${nextDate.getFullYear()}-${nextDate.getMonth() + 1}-${nextDate.getDate()}`;
+                
+                // If Saturday and Monday are both absent
+                if (data.entries[prevStr] === "Absent" && data.entries[nextStr] === "Absent") {
+                    isSandwich = true;
+                    status = "Absent"; // Overwrite status for count
+                }
+            }
+
             counts[status]++;
             let div = document.createElement('div');
-            div.className = `day-cell cell-${status}`;
+            div.className = `day-cell cell-${isSandwich ? 'Sandwich' : data.entries[dStr] || 'None'}`;
             div.onclick = () => toggle(dStr);
             div.innerText = d;
             grid.appendChild(div);
@@ -424,7 +396,7 @@
         let data = JSON.parse(localStorage.getItem(dataKey)) || { entries: {} };
         data.entries[dateStr] = STATUSES[(STATUSES.indexOf(data.entries[dateStr] || "None") + 1) % STATUSES.length];
         localStorage.setItem(dataKey, JSON.stringify(data));
-        if (currentUser) manualSync(); // Auto-sync on change if logged in
+        if (currentUser) manualSync(); 
         renderApp();
     }
 
@@ -466,52 +438,35 @@
     }
 
     function saveProfile() {
-        const profile = {
-            userName: document.getElementById('userName').value,
-            userPos: document.getElementById('userPos').value,
-            userComp: document.getElementById('userComp').value,
-            baseSalary: document.getElementById('baseSalary').value
-        };
+        const profile = { userName: document.getElementById('userName').value, userPos: document.getElementById('userPos').value, userComp: document.getElementById('userComp').value, baseSalary: document.getElementById('baseSalary').value };
         localStorage.setItem('profile_data', JSON.stringify(profile));
         if (currentUser) manualSync();
-        updateHeaderDisplay();
-        renderApp();
+        updateHeaderDisplay(); renderApp();
     }
 
     function updateHeaderDisplay() {
         const name = document.getElementById('userName').value;
-        const pos = document.getElementById('userPos').value;
-        const comp = document.getElementById('userComp').value;
         document.getElementById('dispName').innerText = name || "User Name";
-        document.getElementById('dispJobComp').innerText = name ? `${pos} @ ${comp}` : "Please login...";
+        document.getElementById('dispJobComp').innerText = name ? `${document.getElementById('userPos').value} @ ${document.getElementById('userComp').value}` : "Please login...";
     }
 
     function uploadImg(input, imgId, storageKey) {
         if (input.files && input.files[0]) {
             let reader = new FileReader();
-            reader.onload = e => { 
-                document.getElementById(imgId).src = e.target.result; 
-                localStorage.setItem(storageKey, e.target.result);
-                if (currentUser) manualSync(); 
-            };
+            reader.onload = e => { document.getElementById(imgId).src = e.target.result; localStorage.setItem(storageKey, e.target.result); if (currentUser) manualSync(); };
             reader.readAsDataURL(input.files[0]);
         }
     }
 
     function exportBackup() {
         const data = getAndroidJSON();
-        let a = document.createElement('a'); 
-        a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })); 
-        a.download = `Android_WorkTracker_Backup.json`; a.click();
+        let a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })); 
+        a.download = `Android_Format_Backup.json`; a.click();
     }
 
     function importBackup(input) {
         let reader = new FileReader(); 
-        reader.onload = e => { 
-            const json = JSON.parse(e.target.result);
-            processAndroidJSON(json);
-            alert("Android Backup Imported Successfully!");
-        };
+        reader.onload = e => { processAndroidJSON(JSON.parse(e.target.result)); alert("Import Successful!"); };
         reader.readAsText(input.files[0]);
     }
 
